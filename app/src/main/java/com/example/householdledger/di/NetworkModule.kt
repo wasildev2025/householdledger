@@ -8,9 +8,12 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.functions.Functions
+import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.realtime.Realtime
+import io.github.jan.supabase.storage.Storage
 import javax.inject.Singleton
 
 @Module
@@ -27,6 +30,8 @@ object NetworkModule {
             install(Auth)
             install(Postgrest)
             install(Realtime)
+            install(Storage)
+            install(Functions)
         }
     }
 
@@ -37,4 +42,8 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideSupabasePostgrest(client: SupabaseClient): Postgrest = client.postgrest
+
+    @Provides
+    @Singleton
+    fun provideSupabaseFunctions(client: SupabaseClient): Functions = client.functions
 }

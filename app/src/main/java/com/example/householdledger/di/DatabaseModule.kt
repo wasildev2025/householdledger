@@ -2,12 +2,7 @@ package com.example.householdledger.di
 
 import android.content.Context
 import androidx.room.Room
-import com.example.householdledger.data.local.AppDatabase
-import com.example.householdledger.data.local.CategoryDao
-import com.example.householdledger.data.local.DairyDao
-import com.example.householdledger.data.local.MemberDao
-import com.example.householdledger.data.local.ServantDao
-import com.example.householdledger.data.local.TransactionDao
+import com.example.householdledger.data.local.*
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -26,7 +21,9 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "household_ledger_db"
-        ).build()
+        )
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides
@@ -52,5 +49,20 @@ object DatabaseModule {
     @Provides
     fun provideDairyDao(database: AppDatabase): DairyDao {
         return database.dairyDao()
+    }
+
+    @Provides
+    fun provideMessageDao(database: AppDatabase): MessageDao {
+        return database.messageDao()
+    }
+
+    @Provides
+    fun provideRecurringTemplateDao(database: AppDatabase): RecurringTemplateDao {
+        return database.recurringTemplateDao()
+    }
+
+    @Provides
+    fun provideOfflineQueueDao(database: AppDatabase): OfflineQueueDao {
+        return database.offlineQueueDao()
     }
 }

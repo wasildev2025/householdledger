@@ -2,6 +2,7 @@ package com.example.householdledger.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -9,10 +10,10 @@ import kotlinx.serialization.Serializable
 data class DairyLog(
     @PrimaryKey val id: String,
     val date: String,
-    val milkQty: Double,
-    val milkPrice: Double,
-    val yogurtQty: Double,
-    val yogurtPrice: Double,
-    val totalBill: Double,
-    val householdId: String
+    @SerialName("milk_qty") val milkQty: Double,
+    @SerialName("milk_price") val milkPrice: Double,
+    @SerialName("yogurt_qty") val yogurtQty: Double,
+    @SerialName("yogurt_price") val yogurtPrice: Double,
+    @SerialName("total_bill") val totalBill: Double,
+    @SerialName("household_id") val householdId: String
 )
