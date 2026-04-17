@@ -20,4 +20,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
     abstract fun memberDao(): MemberDao
     abstract fun servantDao(): ServantDao
+    abstract fun dairyDao(): DairyDao
 }

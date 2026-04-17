@@ -4,6 +4,9 @@ import android.content.Context
 import androidx.room.Room
 import com.example.householdledger.data.local.AppDatabase
 import com.example.householdledger.data.local.CategoryDao
+import com.example.householdledger.data.local.DairyDao
+import com.example.householdledger.data.local.MemberDao
+import com.example.householdledger.data.local.ServantDao
 import com.example.householdledger.data.local.TransactionDao
 import dagger.Module
 import dagger.Provides
@@ -34,5 +37,20 @@ object DatabaseModule {
     @Provides
     fun provideCategoryDao(database: AppDatabase): CategoryDao {
         return database.categoryDao()
+    }
+
+    @Provides
+    fun provideMemberDao(database: AppDatabase): MemberDao {
+        return database.memberDao()
+    }
+
+    @Provides
+    fun provideServantDao(database: AppDatabase): ServantDao {
+        return database.servantDao()
+    }
+
+    @Provides
+    fun provideDairyDao(database: AppDatabase): DairyDao {
+        return database.dairyDao()
     }
 }

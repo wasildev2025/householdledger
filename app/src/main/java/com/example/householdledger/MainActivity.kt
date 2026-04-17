@@ -7,13 +7,18 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.PieChart
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -59,25 +64,43 @@ class MainActivity : ComponentActivity() {
                 }
 
                 Scaffold(
+                    containerColor = MaterialTheme.colorScheme.background,
                     bottomBar = {
                         if (showBottomBar && currentUser?.householdId != null) {
-                            NavigationBar {
+                            NavigationBar(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                tonalElevation = 0.dp
+                            ) {
                                 bottomBarScreens.forEach { screen ->
+                                    val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
+                                    val (filledIcon, outlinedIcon, label) = when (screen) {
+                                        Screen.Home -> Triple(Icons.Filled.Home, Icons.Outlined.Home, "Home")
+                                        Screen.Reports -> Triple(Icons.Filled.PieChart, Icons.Outlined.PieChart, "Reports")
+                                        Screen.People -> Triple(Icons.Filled.Person, Icons.Outlined.Person, "People")
+                                        Screen.Settings -> Triple(Icons.Filled.Settings, Icons.Outlined.Settings, "Settings")
+                                        else -> Triple(Icons.Filled.Home, Icons.Outlined.Home, "Home")
+                                    }
                                     NavigationBarItem(
                                         icon = {
                                             Icon(
-                                                when (screen) {
-                                                    Screen.Home -> Icons.Default.Home
-                                                    Screen.Reports -> Icons.AutoMirrored.Filled.List
-                                                    Screen.People -> Icons.Default.Person
-                                                    Screen.Settings -> Icons.Default.Settings
-                                                    else -> Icons.Default.Home
-                                                },
+                                                if (isSelected) filledIcon else outlinedIcon,
                                                 contentDescription = null
                                             )
                                         },
-                                        label = { Text(screen.route.replaceFirstChar { it.uppercase() }) },
-                                        selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
+                                        label = {
+                                            Text(
+                                                label,
+                                                style = MaterialTheme.typography.labelMedium
+                                            )
+                                        },
+                                        selected = isSelected,
+                                        colors = NavigationBarItemDefaults.colors(
+                                            selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                                            indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                        ),
                                         onClick = {
                                             navController.navigate(screen.route) {
                                                 popUpTo(navController.graph.findStartDestination().id) {
