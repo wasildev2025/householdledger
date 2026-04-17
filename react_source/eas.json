@@ -1,0 +1,33 @@
+{
+    "cli": {
+        "version": ">= 3.10.2"
+    },
+    "build": {
+        "development": {
+            "developmentClient": true,
+            "distribution": "internal"
+        },
+        "preview": {
+            "distribution": "internal",
+            "android": {
+                "buildType": "apk"
+            },
+            "env": {
+                "ENV": "staging"
+            }
+        },
+        "production": {
+            "distribution": "internal",
+            "android": {
+                "buildType": "app-bundle",
+                "gradleCommand": ":app:bundleRelease"
+            },
+            "env": {
+                "ENV": "production"
+            }
+        }
+    },
+    "submit": {
+        "production": {}
+    }
+}

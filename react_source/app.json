@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "Household Ledger",
+    "slug": "household-ledger",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/logo.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "scheme": "household-ledger",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.akmal.householdledger",
+      "usesAppleSignIn": true,
+      "jsEngine": "hermes"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.akmal.householdledger",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "jsEngine": "hermes"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-asset",
+      "expo-font",
+      "expo-web-browser",
+      "expo-apple-authentication",
+      "expo-audio",
+      "@react-native-community/datetimepicker",
+      "@sentry/react-native"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "5044b6df-4849-4238-aa4b-752f8382cc3e"
+      }
+    }
+  }
+}
