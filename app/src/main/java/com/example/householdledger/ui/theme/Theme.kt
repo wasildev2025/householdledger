@@ -1,7 +1,6 @@
 package com.example.householdledger.ui.theme
 
 import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -14,18 +13,18 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val LightScheme = lightColorScheme(
-    primary = TealPrimary,
-    onPrimary = TealOnPrimary,
-    primaryContainer = TealPrimaryContainer,
-    onPrimaryContainer = TealOnPrimaryContainer,
-    secondary = AmberSecondary,
-    onSecondary = AmberOnSecondary,
-    secondaryContainer = AmberSecondaryContainer,
-    onSecondaryContainer = AmberOnSecondaryContainer,
-    tertiary = RoseTertiary,
-    onTertiary = RoseOnTertiary,
-    tertiaryContainer = RoseTertiaryContainer,
-    onTertiaryContainer = RoseOnTertiaryContainer,
+    primary = IndigoPrimary,
+    onPrimary = IndigoOnPrimary,
+    primaryContainer = IndigoPrimaryContainer,
+    onPrimaryContainer = IndigoOnPrimaryContainer,
+    secondary = SlateSecondary,
+    onSecondary = SlateOnSecondary,
+    secondaryContainer = SlateSecondaryContainer,
+    onSecondaryContainer = SlateOnSecondaryContainer,
+    tertiary = CyanTertiary,
+    onTertiary = CyanOnTertiary,
+    tertiaryContainer = CyanTertiaryContainer,
+    onTertiaryContainer = CyanOnTertiaryContainer,
     background = LightBackground,
     onBackground = LightOnBackground,
     surface = LightSurface,
@@ -42,18 +41,18 @@ private val LightScheme = lightColorScheme(
 )
 
 private val DarkScheme = darkColorScheme(
-    primary = TealPrimaryDark,
-    onPrimary = TealOnPrimaryDark,
-    primaryContainer = TealPrimaryContainerDark,
-    onPrimaryContainer = TealOnPrimaryContainerDark,
-    secondary = AmberSecondaryDark,
-    onSecondary = AmberOnSecondaryDark,
-    secondaryContainer = AmberSecondaryContainerDark,
-    onSecondaryContainer = AmberOnSecondaryContainerDark,
-    tertiary = RoseTertiaryDark,
-    onTertiary = RoseOnTertiaryDark,
-    tertiaryContainer = RoseTertiaryContainerDark,
-    onTertiaryContainer = RoseOnTertiaryContainerDark,
+    primary = IndigoPrimaryDark,
+    onPrimary = IndigoOnPrimaryDark,
+    primaryContainer = IndigoPrimaryContainerDark,
+    onPrimaryContainer = IndigoOnPrimaryContainerDark,
+    secondary = SlateSecondaryDark,
+    onSecondary = SlateOnSecondaryDark,
+    secondaryContainer = SlateSecondaryContainerDark,
+    onSecondaryContainer = SlateOnSecondaryContainerDark,
+    tertiary = CyanTertiaryDark,
+    onTertiary = CyanOnTertiaryDark,
+    tertiaryContainer = CyanTertiaryContainerDark,
+    onTertiaryContainer = CyanOnTertiaryContainerDark,
     background = DarkBackground,
     onBackground = DarkOnBackground,
     surface = DarkSurface,
@@ -81,6 +80,7 @@ fun HouseholdLedgerTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
+            @Suppress("DEPRECATION")
             window.statusBarColor = colorScheme.background.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
             WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme

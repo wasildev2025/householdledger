@@ -120,7 +120,7 @@ fun PeopleScreen(
                                     name = servant.name,
                                     role = servant.role.ifBlank { "Staff" },
                                     phone = servant.phoneNumber,
-                                    salary = servant.salary,
+                                    salary = servant.salary ?: 0.0,
                                     balance = servant.balance,
                                     onDelete = { viewModel.deleteServant(servant) }
                                 )
