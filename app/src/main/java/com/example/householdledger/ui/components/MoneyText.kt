@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import com.example.householdledger.ui.theme.LocalCurrencySymbol
 import com.example.householdledger.ui.theme.MoneyBody
 import com.example.householdledger.ui.theme.appColors
 import java.text.NumberFormat
@@ -21,7 +22,7 @@ fun MoneyText(
     modifier: Modifier = Modifier,
     tone: MoneyTone = MoneyTone.Neutral,
     showSign: Boolean = false,
-    currencySymbol: String = "₹",
+    currencySymbol: String = LocalCurrencySymbol.current,
     style: TextStyle = MoneyBody,
     color: Color = Color.Unspecified
 ) {

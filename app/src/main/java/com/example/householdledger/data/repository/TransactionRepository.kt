@@ -6,7 +6,17 @@ import com.example.householdledger.data.model.OfflineQueueItem
 import com.example.householdledger.data.model.Transaction
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.Realtime
+import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.postgresChangeFlow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -17,11 +27,38 @@ class TransactionRepository @Inject constructor(
     private val transactionDao: TransactionDao,
     private val offlineQueueDao: OfflineQueueDao,
     private val postgrest: Postgrest,
+    private val realtime: Realtime,
     private val authRepository: AuthRepository
 ) {
     val transactions: Flow<List<Transaction>> = transactionDao.getAllTransactions()
 
     private val json = Json { ignoreUnknownKeys = true }
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var realtimeJob: Job? = null
+
+    fun subscribeRealtime() {
+        val householdId = authRepository.currentUser.value?.householdId ?: return
+        realtimeJob?.cancel()
+        realtimeJob = scope.launch {
+            try {
+                val channel = realtime.channel("transactions:$householdId")
+                val changes = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
+                    table = "transactions"
+                }
+                channel.subscribe()
+                changes.catch { it.printStackTrace() }.collect { _ ->
+                    syncTransactions()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun unsubscribeRealtime() {
+        realtimeJob?.cancel()
+        realtimeJob = null
+    }
 
     /**
      * Sync remote transactions into the local cache.

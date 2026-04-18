@@ -121,12 +121,13 @@ class MessageRepository @Inject constructor(
             val channel = supabaseClient.realtime.channel("messages:$householdId")
             channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
                 table = "messages"
-                filter = "household_id=eq.$householdId"
             }.collect { change ->
                 scope.launch {
                     try {
                         val newMessage = change.decodeRecord<Message>()
-                        messageDao.insertMessage(newMessage)
+                        if (newMessage.householdId == householdId) {
+                            messageDao.insertMessage(newMessage)
+                        }
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }

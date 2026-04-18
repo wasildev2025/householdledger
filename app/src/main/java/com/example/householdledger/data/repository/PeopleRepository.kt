@@ -6,7 +6,17 @@ import com.example.householdledger.data.model.Member
 import com.example.householdledger.data.model.Servant
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.Realtime
+import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.postgresChangeFlow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -16,10 +26,45 @@ class PeopleRepository @Inject constructor(
     private val servantDao: ServantDao,
     private val memberDao: MemberDao,
     private val postgrest: Postgrest,
+    private val realtime: Realtime,
     private val authRepository: AuthRepository
 ) {
     val servants: Flow<List<Servant>> = servantDao.getAllServants()
     val members: Flow<List<Member>> = memberDao.getAllMembers()
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var servantJob: Job? = null
+    private var memberJob: Job? = null
+
+    fun subscribeRealtime() {
+        val householdId = authRepository.currentUser.value?.householdId ?: return
+        servantJob?.cancel(); memberJob?.cancel()
+        servantJob = scope.launch {
+            try {
+                val channel = realtime.channel("servants:$householdId")
+                val changes = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
+                    table = "servants"
+                }
+                channel.subscribe()
+                changes.catch { it.printStackTrace() }.collect { _ -> syncPeople() }
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+        memberJob = scope.launch {
+            try {
+                val channel = realtime.channel("members:$householdId")
+                val changes = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
+                    table = "members"
+                }
+                channel.subscribe()
+                changes.catch { it.printStackTrace() }.collect { _ -> syncPeople() }
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+    }
+
+    fun unsubscribeRealtime() {
+        servantJob?.cancel(); memberJob?.cancel()
+        servantJob = null; memberJob = null
+    }
 
     suspend fun syncPeople() {
         val profile = authRepository.currentUser.value ?: return

@@ -23,6 +23,24 @@ class RecurringRepository @Inject constructor(
         return recurringDao.getTemplates(householdId)
     }
 
+    /**
+     * Flow of active recurring templates whose `nextRun` falls within the next
+     * `days` days. Used by the Upcoming Bills section on Home.
+     */
+    fun upcomingBills(householdId: String, days: Int = 14): Flow<List<RecurringTemplate>> {
+        return kotlinx.coroutines.flow.combine(
+            recurringDao.getTemplates(householdId),
+            kotlinx.coroutines.flow.flowOf(LocalDate.now())
+        ) { templates, today ->
+            val cutoff = today.plusDays(days.toLong())
+            templates.filter { t ->
+                if (!t.isActive) return@filter false
+                val next = runCatching { LocalDate.parse(t.nextRun) }.getOrNull() ?: return@filter false
+                !next.isBefore(today) && !next.isAfter(cutoff)
+            }.sortedBy { it.nextRun }
+        }
+    }
+
     suspend fun syncTemplates() {
         val profile = authRepository.currentUser.value ?: return
         val householdId = profile.householdId ?: return

@@ -69,8 +69,8 @@ fun DairyTrackerScreen(
     onBack: () -> Unit,
     viewModel: DairyViewModel = hiltViewModel()
 ) {
-    val logs by viewModel.dairyLogs.collectAsState()
-    val household by viewModel.household.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    val logs = uiState.logs
 
     var milkQty by remember { mutableStateOf("") }
     var yogurtQty by remember { mutableStateOf("") }
@@ -131,21 +131,21 @@ fun DairyTrackerScreen(
                             label = "Milk",
                             unit = "L",
                             value = milkQty,
-                            onChange = { milkQty = it.filter { ch -> ch.isDigit() || ch == '.' } },
+                            onChange = { milkQty = it },
                             icon = Icons.Outlined.LocalDrink,
-                            unitPrice = household?.milkPrice
+                            unitPrice = uiState.milkPrice
                         )
                         QuantityField(
                             label = "Yogurt",
                             unit = "Kg",
                             value = yogurtQty,
-                            onChange = { yogurtQty = it.filter { ch -> ch.isDigit() || ch == '.' } },
+                            onChange = { yogurtQty = it },
                             icon = Icons.Outlined.LocalCafe,
-                            unitPrice = household?.yogurtPrice
+                            unitPrice = uiState.yogurtPrice
                         )
                         Button(
                             onClick = {
-                                viewModel.addEntry(
+                                viewModel.addLog(
                                     milkQty.toDoubleOrNull() ?: 0.0,
                                     yogurtQty.toDoubleOrNull() ?: 0.0
                                 )
@@ -188,7 +188,7 @@ fun DairyTrackerScreen(
                 items(logs, key = { it.id }) { log ->
                     DairyLogRow(
                         log = log,
-                        onDelete = { viewModel.deleteEntry(log) }
+                        onDelete = { viewModel.deleteLog(log) }
                     )
                 }
             }

@@ -13,7 +13,9 @@ import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.realtime.Realtime
+import io.github.jan.supabase.realtime.realtime
 import io.github.jan.supabase.storage.Storage
+import io.github.jan.supabase.storage.storage
 import javax.inject.Singleton
 
 @Module
@@ -25,7 +27,7 @@ object NetworkModule {
     fun provideSupabaseClient(): SupabaseClient {
         return createSupabaseClient(
             supabaseUrl = "https://rattnfjlyfgozskbwyni.supabase.co",
-            supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJhdHRuZmpseWZnb3pza2J3eW5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNzAwMjQsImV4cCI6MjA4NDk0NjAyNH0.3cE-IDsWjqDXV9wTxnMEwYyMOVnOdITFZmFUNdHLG0A"
+            supabaseKey = "sb_publishable_r4b1KLNeMSqTVTfRNixcMw_M17Mk5Pd"
         ) {
             install(Auth)
             install(Postgrest)
@@ -46,4 +48,12 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideSupabaseFunctions(client: SupabaseClient): Functions = client.functions
+
+    @Provides
+    @Singleton
+    fun provideSupabaseRealtime(client: SupabaseClient): Realtime = client.realtime
+
+    @Provides
+    @Singleton
+    fun provideSupabaseStorage(client: SupabaseClient): Storage = client.storage
 }

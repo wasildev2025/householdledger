@@ -70,9 +70,15 @@ private val DarkScheme = darkColorScheme(
 
 @Composable
 fun HouseholdLedgerTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkModePreference: String = "system", // "system", "light", "dark"
+    currencySymbol: String = "₹",
     content: @Composable () -> Unit
 ) {
+    val darkTheme = when (darkModePreference) {
+        "light" -> false
+        "dark" -> true
+        else -> isSystemInDarkTheme()
+    }
     val colorScheme = if (darkTheme) DarkScheme else LightScheme
     val appColors = if (darkTheme) DarkAppColors else LightAppColors
 
@@ -87,7 +93,10 @@ fun HouseholdLedgerTheme(
         }
     }
 
-    CompositionLocalProvider(LocalAppColors provides appColors) {
+    CompositionLocalProvider(
+        LocalAppColors provides appColors,
+        LocalCurrencySymbol provides currencySymbol
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = Typography,

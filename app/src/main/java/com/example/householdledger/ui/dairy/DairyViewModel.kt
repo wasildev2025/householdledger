@@ -30,17 +30,18 @@ class DairyViewModel @Inject constructor(
         viewModelScope.launch {
             val householdId = authRepository.currentUser.value?.householdId
             if (householdId != null) {
-                dairyRepository.syncLogs(householdId)
+                dairyRepository.syncDairyLogs()
                 
                 combine(
-                    dairyRepository.getLogs(householdId),
-                    householdRepository.getHousehold(householdId)
+                    dairyRepository.dairyLogs,
+                    householdRepository.household
                 ) { logs, household ->
+                    val filteredLogs = logs.filter { it.householdId == householdId }
                     DairyUiState(
-                        logs = logs,
+                        logs = filteredLogs,
                         milkPrice = household?.milkPrice ?: 150.0,
                         yogurtPrice = household?.yogurtPrice ?: 200.0,
-                        totalMonthlyBill = logs.sumOf { it.totalBill }
+                        totalMonthlyBill = filteredLogs.sumOf { it.totalBill }
                     )
                 }.collect { state ->
                     _uiState.value = state
@@ -67,7 +68,13 @@ class DairyViewModel @Inject constructor(
         )
         
         viewModelScope.launch {
-            dairyRepository.addLog(log)
+            dairyRepository.addDairyLog(log)
+        }
+    }
+
+    fun deleteLog(log: DairyLog) {
+        viewModelScope.launch {
+            dairyRepository.deleteDairyLog(log)
         }
     }
 }

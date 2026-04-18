@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Button
@@ -50,8 +51,11 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.householdledger.util.BiometricHelper
 
 @Composable
 fun LoginScreen(
@@ -65,6 +69,10 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
 
     val loginState by viewModel.loginState.collectAsState()
+    val biometricEnabled by viewModel.biometricEnabled.collectAsState()
+    val hasExistingSession by viewModel.hasExistingSession.collectAsState()
+    val context = LocalContext.current
+    val biometricAvailable = BiometricHelper.canAuthenticate(context)
 
     LaunchedEffect(loginState) {
         if (loginState is LoginState.Success) onLoginSuccess()
@@ -72,6 +80,19 @@ fun LoginScreen(
 
     val isLoading = loginState is LoginState.Loading
     val error = (loginState as? LoginState.Error)?.message
+
+    val showBiometricQuickUnlock = biometricAvailable && biometricEnabled && hasExistingSession
+    LaunchedEffect(showBiometricQuickUnlock) {
+        if (showBiometricQuickUnlock) {
+            (context as? FragmentActivity)?.let { activity ->
+                BiometricHelper.authenticate(
+                    activity = activity,
+                    onSuccess = { viewModel.unlockExistingSession() },
+                    onError = { /* user can fall back to password */ }
+                )
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -184,6 +205,23 @@ fun LoginScreen(
             }
 
             Spacer(Modifier.height(16.dp))
+
+            if (showBiometricQuickUnlock) {
+                TextButton(onClick = {
+                    (context as? FragmentActivity)?.let { activity ->
+                        BiometricHelper.authenticate(
+                            activity = activity,
+                            onSuccess = { viewModel.unlockExistingSession() },
+                            onError = {}
+                        )
+                    }
+                }) {
+                    Icon(Icons.Outlined.Fingerprint, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Unlock with biometrics", style = MaterialTheme.typography.labelLarge)
+                }
+                Spacer(Modifier.height(8.dp))
+            }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(

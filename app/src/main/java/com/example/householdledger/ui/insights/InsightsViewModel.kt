@@ -6,6 +6,7 @@ import com.example.householdledger.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.functions.functions
+import io.ktor.client.call.body
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -51,7 +52,7 @@ class InsightsViewModel @Inject constructor(
                 )
                 
                 // Decode assuming the edge function returns { "insights": "..." }
-                val insightData = response.decodeAs<InsightResponse>()
+                val insightData = response.body<InsightResponse>()
                 _uiState.value = InsightsUiState(insights = insightData.insights)
             } catch (e: Exception) {
                 e.printStackTrace()
