@@ -48,17 +48,52 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.householdledger.ui.components.AppCard
+import com.example.householdledger.ui.components.CategoryPill
+import com.example.householdledger.ui.theme.EyebrowCaps
+import com.example.householdledger.util.resolveCategoryIcon
 
 private val PALETTE = listOf(
-    "#6366F1", "#3B82F6", "#10B981", "#F59E0B",
-    "#EF4444", "#EC4899", "#8B5CF6", "#14B8A6",
-    "#F97316", "#0EA5E9"
+    "#E8833A", "#D14343", "#2F8F6A", "#0F766E",
+    "#3B82F6", "#6366F1", "#8B5CF6", "#EC4899",
+    "#F59E0B", "#B08448"
 )
 
-private val ICON_NAMES = listOf(
-    "Food", "Home", "Car", "Health",
-    "Shop", "Pay", "Kid", "Pet",
-    "Bills", "Fun", "Gift", "Misc"
+/**
+ * Icon options presented in the category picker. Values match Ionicons names so
+ * [resolveCategoryIcon] round-trips them into real Material icons on list/home
+ * screens. Grouped for scanability.
+ */
+private data class IconGroup(val title: String, val icons: List<String>)
+
+private val ICON_GROUPS = listOf(
+    IconGroup(
+        "Everyday",
+        listOf("cart", "fast-food", "restaurant", "cafe", "milk", "gift")
+    ),
+    IconGroup(
+        "Home",
+        listOf("home", "flash", "water", "flame", "wifi", "phone-portrait")
+    ),
+    IconGroup(
+        "Transport",
+        listOf("car", "bus", "airplane", "train")
+    ),
+    IconGroup(
+        "Health & fitness",
+        listOf("medkit", "fitness", "heart")
+    ),
+    IconGroup(
+        "Entertainment",
+        listOf("musical-notes", "game-controller", "film", "book", "school")
+    ),
+    IconGroup(
+        "Money",
+        listOf("cash", "wallet", "card", "receipt")
+    ),
+    IconGroup(
+        "Personal",
+        listOf("shirt", "paw")
+    )
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

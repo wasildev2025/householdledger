@@ -45,19 +45,19 @@ fun WalletPocketCard(
     name: String,
     kindLabel: String,     // "Servant" | "Member"
     monthSpend: Double,
+    transferredIn: Double, // money admin transferred to this person this cycle
+    netBalance: Double,    // transferredIn − monthSpend. Negative → admin owes them.
     allocation: Double,    // 0 if none
     identityKey: String,   // stable id for palette hash
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null
 ) {
     val (top, bottom) = paletteFor(identityKey)
-    val ratio = if (allocation > 0) (monthSpend / allocation).toFloat().coerceIn(0f, 1.2f) else 0f
-    val overBudget = ratio > 1f
 
     Surface(
         modifier = modifier
-            .width(240.dp)
-            .height(140.dp),
+            .width(260.dp)
+            .height(170.dp),
         shape = RoundedCornerShape(22.dp),
         color = Color.Transparent,
         onClick = onClick ?: {},
@@ -117,30 +117,86 @@ fun WalletPocketCard(
                 }
 
                 Column {
+                    // Transferred ↔ Spent mini-row
                     Row(
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        Column {
-                            Text(
-                                "SPEND THIS CYCLE",
-                                style = EyebrowCaps,
-                                color = Color.White.copy(alpha = 0.7f)
-                            )
-                            Spacer(Modifier.height(2.dp))
-                            MoneyText(
-                                amount = monthSpend,
-                                style = MoneyBody.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
-                                color = Color.White
-                            )
-                        }
-                        if (allocation > 0) {
-                            BudgetMeter(ratio = ratio, overBudget = overBudget)
-                        }
+                        WalletStat(
+                            label = "TRANSFERRED",
+                            amount = transferredIn,
+                            modifier = Modifier.weight(1f)
+                        )
+                        WalletStat(
+                            label = "SPENT",
+                            amount = monthSpend,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
+                    Spacer(Modifier.height(8.dp))
+                    // Balance / owed strip. The sign and label flip based on whether the
+                    // person has money left or admin now owes them.
+                    BalanceStrip(netBalance = netBalance)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun WalletStat(label: String, amount: Double, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(
+            label,
+            style = EyebrowCaps,
+            color = Color.White.copy(alpha = 0.72f)
+        )
+        Spacer(Modifier.height(2.dp))
+        MoneyText(
+            amount = amount,
+            style = MoneyBody.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold),
+            color = Color.White
+        )
+    }
+}
+
+@Composable
+private fun BalanceStrip(netBalance: Double) {
+    val owed = netBalance < 0
+    val label = when {
+        netBalance == 0.0 -> "SETTLED"
+        owed -> "TOP UP · OWED"
+        else -> "WALLET BALANCE"
+    }
+    val accent = if (owed) Color(0xFFFFB4A0) else Color(0xFF7CE4B4)
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = Color.White.copy(alpha = 0.14f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .background(accent, CircleShape)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    label,
+                    style = EyebrowCaps,
+                    color = Color.White.copy(alpha = 0.92f)
+                )
+            }
+            MoneyText(
+                amount = kotlin.math.abs(netBalance),
+                style = MoneyBody.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                color = accent
+            )
         }
     }
 }

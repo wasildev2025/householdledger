@@ -405,11 +405,20 @@ private fun DayHeader(section: DaySection) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f)
         )
+        if (section.transferOnly) {
+            Text(
+                "TRANSFERS",
+                style = com.example.householdledger.ui.theme.EyebrowCaps,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = 6.dp)
+            )
+        }
         MoneyText(
             amount = section.total,
             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-            showSign = true,
+            showSign = !section.transferOnly,
             tone = when {
+                section.transferOnly -> MoneyTone.Neutral
                 section.total > 0 -> MoneyTone.Income
                 section.total < 0 -> MoneyTone.Expense
                 else -> MoneyTone.Neutral

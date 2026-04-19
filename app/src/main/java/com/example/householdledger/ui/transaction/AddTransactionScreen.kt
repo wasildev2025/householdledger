@@ -35,6 +35,8 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -115,6 +117,7 @@ fun AddTransactionSheet(
         )
     }
     var selectedCategoryId by remember(editing?.id) { mutableStateOf(editing?.categoryId) }
+    var description by remember(editing?.id) { mutableStateOf(editing?.description.orEmpty()) }
     var categoryMenuOpen by remember { mutableStateOf(false) }
     var recipientMenuOpen by remember { mutableStateOf(false) }
     var recipient by remember(editing?.id) {
@@ -302,7 +305,22 @@ fun AddTransactionSheet(
             )
         }
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(14.dp))
+
+        OutlinedTextField(
+            value = description,
+            onValueChange = { description = it.take(140) },
+            placeholder = { Text("Where did it go? e.g. Atif grocery shop") },
+            singleLine = true,
+            shape = RoundedCornerShape(14.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                focusedBorderColor = MaterialTheme.colorScheme.primary
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(Modifier.height(16.dp))
 
         NumberPad(
             onDigit = { d ->
@@ -324,11 +342,16 @@ fun AddTransactionSheet(
                 val now = LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME)
                 val sid = (recipient as? Recipient.ServantR)?.id
                 val mid = (recipient as? Recipient.MemberR)?.id
+                // Description falls back to the category name if the user didn't type one,
+                // so legacy behaviour is preserved for people who don't care about notes.
+                val finalDescription = description.trim().ifBlank {
+                    selectedCategory?.name.orEmpty()
+                }
                 if (editing != null) {
                     viewModel.updateTransaction(
                         original = editing,
                         amount = amountDouble,
-                        description = selectedCategory?.name ?: editing.description,
+                        description = finalDescription,
                         type = type.key,
                         categoryId = selectedCategory?.id,
                         date = now,
@@ -338,7 +361,7 @@ fun AddTransactionSheet(
                 } else {
                     viewModel.addTransaction(
                         amount = amountDouble,
-                        description = selectedCategory?.name.orEmpty(),
+                        description = finalDescription,
                         type = type.key,
                         categoryId = selectedCategory?.id,
                         date = now,

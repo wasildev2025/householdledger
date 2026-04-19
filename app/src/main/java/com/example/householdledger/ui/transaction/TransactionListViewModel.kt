@@ -51,7 +51,8 @@ data class TxnListRow(
 
 data class DaySection(
     val label: String,       // "Today", "Yesterday", "Mon, 14 Apr"
-    val total: Double,       // net for the day (income - expense)
+    val total: Double,       // net for the day (income − expense) or transfer sum
+    val transferOnly: Boolean = false, // true → render total with neutral tone
     val rows: List<TxnListRow>
 )
 
@@ -170,9 +171,16 @@ class TransactionListViewModel @Inject constructor(
             .map { (date, rows) ->
                 val income = rows.filter { it.transaction.type == "income" }.sumOf { it.transaction.amount }
                 val expense = rows.filter { it.transaction.type == "expense" }.sumOf { it.transaction.amount }
+                val transfers = rows.filter { it.transaction.type == "transfer" }.sumOf { it.transaction.amount }
+                // When a day contains ONLY transfers, the net (income − expense) is 0 and the
+                // header used to read ₨0, hiding the actual transfer volume. Fall back to the
+                // transfer sum instead so the header reflects what's in the rows.
+                val transferOnly = income == 0.0 && expense == 0.0 && transfers > 0.0
+                val total = if (transferOnly) transfers else income - expense
                 DaySection(
                     label = dayLabel(date, today),
-                    total = income - expense,
+                    total = total,
+                    transferOnly = transferOnly,
                     rows = rows
                 )
             }

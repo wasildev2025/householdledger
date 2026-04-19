@@ -30,13 +30,24 @@ import javax.inject.Inject
 
 enum class HomeFilter { All, Servants, Members }
 
+/**
+ * Reconciliation snapshot for a single servant / member over the active cycle.
+ *
+ * - [transferredIn]: total transferred TO this person (admin loaded their wallet)
+ * - [monthlySpend]: total this person spent from the household's tab
+ * - [netBalance]:   transferredIn − monthlySpend
+ *     > 0 → wallet has money left
+ *     < 0 → person spent out of pocket; admin owes them (|netBalance|)
+ */
 data class WalletSummary(
     val id: String,
     val name: String,
-    val balance: Double,
+    val balance: Double,           // DB-stored lifetime balance (reference only)
     val monthlySpend: Double,
+    val transferredIn: Double,
+    val netBalance: Double,
     val allocation: Double,
-    val kind: String // "servant" | "member"
+    val kind: String               // "servant" | "member"
 )
 
 data class HomeUiState(
@@ -239,25 +250,49 @@ class HomeViewModel @Inject constructor(
         monthTxns: List<Transaction>,
         filter: HomeFilter
     ): List<WalletSummary> {
-        val servantSpend = monthTxns.groupBy { it.servantId }.mapValues { (_, v) -> v.sumOf { it.amount } }
-        val memberSpend = monthTxns.groupBy { it.memberId }.mapValues { (_, v) -> v.sumOf { it.amount } }
+        // "Spent" is anything the person charged to the household tab this cycle —
+        // expenses and transfers count, income obviously doesn't.
+        val spendTxns = monthTxns.filter { it.type != "income" }
+        val transferTxns = monthTxns.filter { it.type == "transfer" }
+
+        val servantSpend = spendTxns.filter { it.type == "expense" }
+            .groupBy { it.servantId }
+            .mapValues { (_, v) -> v.sumOf { it.amount } }
+        val servantTransfersIn = transferTxns
+            .groupBy { it.servantId }
+            .mapValues { (_, v) -> v.sumOf { it.amount } }
+
+        val memberSpend = spendTxns.filter { it.type == "expense" }
+            .groupBy { it.memberId }
+            .mapValues { (_, v) -> v.sumOf { it.amount } }
+        val memberTransfersIn = transferTxns
+            .groupBy { it.memberId }
+            .mapValues { (_, v) -> v.sumOf { it.amount } }
 
         val servantWallets = servants.map { s ->
+            val transferred = servantTransfersIn[s.id] ?: 0.0
+            val spent = servantSpend[s.id] ?: 0.0
             WalletSummary(
                 id = s.id,
                 name = s.name,
                 balance = s.balance,
-                monthlySpend = servantSpend[s.id] ?: 0.0,
+                monthlySpend = spent,
+                transferredIn = transferred,
+                netBalance = transferred - spent,
                 allocation = s.budget ?: 0.0,
                 kind = "servant"
             )
         }
         val memberWallets = members.map { m ->
+            val transferred = memberTransfersIn[m.id] ?: 0.0
+            val spent = memberSpend[m.id] ?: 0.0
             WalletSummary(
                 id = m.id,
                 name = m.name,
                 balance = 0.0,
-                monthlySpend = memberSpend[m.id] ?: 0.0,
+                monthlySpend = spent,
+                transferredIn = transferred,
+                netBalance = transferred - spent,
                 allocation = 0.0,
                 kind = "member"
             )

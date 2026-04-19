@@ -402,6 +402,8 @@ private fun WalletsRow(wallets: List<WalletSummary>) {
                 name = w.name,
                 kindLabel = w.kind,
                 monthSpend = w.monthlySpend,
+                transferredIn = w.transferredIn,
+                netBalance = w.netBalance,
                 allocation = w.allocation,
                 identityKey = w.kind + w.id
             )

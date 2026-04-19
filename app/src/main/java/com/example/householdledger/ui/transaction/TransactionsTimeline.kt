@@ -106,11 +106,20 @@ private fun TimelineDayBand(section: DaySection, first: Boolean) {
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f)
             )
+            if (section.transferOnly) {
+                Text(
+                    "TRANSFERS",
+                    style = EyebrowCaps,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(end = 6.dp)
+                )
+            }
             MoneyText(
                 amount = section.total,
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                showSign = true,
+                showSign = !section.transferOnly,
                 tone = when {
+                    section.transferOnly -> MoneyTone.Neutral
                     section.total > 0 -> MoneyTone.Income
                     section.total < 0 -> MoneyTone.Expense
                     else -> MoneyTone.Neutral
