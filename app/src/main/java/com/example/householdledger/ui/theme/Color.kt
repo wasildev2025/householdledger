@@ -84,10 +84,10 @@ val ErrorOnDark           = Color(0xFF2E0C0C)
 
 val Scrim                 = Color(0x73000000)
 
-// ---- Cycle Pulse hero gradient (saffron → coral, warm) ----
-val PulseGradientTop      = Color(0xFFF6B27B)  // peach
-val PulseGradientMid      = Color(0xFFE8833A)  // saffron
-val PulseGradientBottom   = Color(0xFFCD5F2C)  // burnt orange
+// ---- Cycle Pulse hero gradient (purple → violet, deep) ----
+val PulseGradientTop      = Color(0xFFC4B5FD)  // light violet
+val PulseGradientMid      = Color(0xFF7C3AED)  // violet
+val PulseGradientBottom   = Color(0xFF4C1D95)  // deep purple
 
 // ---- Wallet card palettes (duotone, one per identity slot) ----
 // Each index yields a distinct wallet card color pair; cycle by id hash.
@@ -132,15 +132,15 @@ val DarkOnError            = ErrorOnDark
 val DarkErrorContainer     = ErrorDarkContainer
 val DarkOnErrorContainer   = Color(0xFFF8DADA)
 
-val IndigoPrimary              = SaffronLight
-val IndigoOnPrimary            = SaffronOnLight
-val IndigoPrimaryContainer     = SaffronContainerLight
-val IndigoOnPrimaryContainer   = SaffronOnContainerLight
+val IndigoPrimary              = Color(0xFF7C3AED)
+val IndigoOnPrimary            = Color(0xFFFFFFFF)
+val IndigoPrimaryContainer     = Color(0xFFEDE9FE)
+val IndigoOnPrimaryContainer   = Color(0xFF1E1B4B)
 
-val IndigoPrimaryDark          = SaffronDark
-val IndigoOnPrimaryDark        = SaffronOnDark
-val IndigoPrimaryContainerDark = SaffronContainerDark
-val IndigoOnPrimaryContainerDark = SaffronOnContainerDark
+val IndigoPrimaryDark          = Color(0xFFA78BFA)
+val IndigoOnPrimaryDark        = Color(0xFF1E1B4B)
+val IndigoPrimaryContainerDark = Color(0xFF4C1D95)
+val IndigoOnPrimaryContainerDark = Color(0xFFEDE9FE)
 
 val SlateSecondary             = TealLight
 val SlateOnSecondary           = TealOnLight

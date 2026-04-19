@@ -47,7 +47,7 @@ import com.example.householdledger.ui.theme.PulseGradientMid
 import com.example.householdledger.ui.theme.PulseGradientTop
 
 /**
- * Branded splash. A warm-saffron gradient card lifts up from below as the
+ * Branded splash. A deep purple gradient card lifts up from below as the
  * logo scales in. A soft pulse ring breathes behind the mark while boot
  * runs, echoing the Cycle Pulse hero so the first frame the user sees is
  * already in the app's visual voice.
@@ -148,7 +148,7 @@ fun SplashScreen() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                "SAFFRON · WARM · INTENTIONAL",
+                "PURPLE · MODERN · INTENTIONAL",
                 style = EyebrowCaps,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
