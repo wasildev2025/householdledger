@@ -125,6 +125,7 @@ private fun AppContent(viewModel: MainViewModel) {
 
     var showAddSheet by remember { mutableStateOf(false) }
     var editingTxn by remember { mutableStateOf<com.example.householdledger.data.model.Transaction?>(null) }
+    var transferPrefill by remember { mutableStateOf<com.example.householdledger.ui.transaction.TransferPrefill?>(null) }
     var showVoiceSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val voiceSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -222,7 +223,15 @@ private fun AppContent(viewModel: MainViewModel) {
                     onNavigateToRecurring = { navController.navigate(Screen.Recurring.route) },
                     onNavigateToTransactions = { navController.navigate(Screen.Transactions.route) },
                     onNavigateToCategories = { navController.navigate(Screen.Categories.route) },
-                    onNavigateToPeople = { navController.navigate(Screen.People.route) }
+                    onNavigateToPeople = { navController.navigate(Screen.People.route) },
+                    onTopUpWallet = { wallet, owedAmount ->
+                        transferPrefill = com.example.householdledger.ui.transaction.TransferPrefill(
+                            servantId = wallet.id.takeIf { wallet.kind == "servant" },
+                            memberId = wallet.id.takeIf { wallet.kind == "member" },
+                            amount = owedAmount
+                        )
+                        showAddSheet = true
+                    }
                 )
             }
             composable(Screen.Reports.route) { ReportsScreen() }
@@ -303,6 +312,7 @@ private fun AppContent(viewModel: MainViewModel) {
                 onDismissRequest = {
                     showAddSheet = false
                     editingTxn = null
+                    transferPrefill = null
                 },
                 sheetState = sheetState,
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -310,10 +320,12 @@ private fun AppContent(viewModel: MainViewModel) {
             ) {
                 AddTransactionSheet(
                     editing = editingTxn,
+                    prefill = transferPrefill,
                     onClose = {
                         sheetScope.launch { sheetState.hide() }.invokeOnCompletion {
                             showAddSheet = false
                             editingTxn = null
+                            transferPrefill = null
                         }
                     }
                 )

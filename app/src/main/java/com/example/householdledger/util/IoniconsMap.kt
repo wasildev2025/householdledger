@@ -4,34 +4,53 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
-import androidx.compose.material.icons.outlined.DirectionsBus
 import androidx.compose.material.icons.outlined.AttachMoney
+import androidx.compose.material.icons.outlined.Bathtub
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Brush
+import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.CardGiftcard
 import androidx.compose.material.icons.outlined.Checkroom
+import androidx.compose.material.icons.outlined.ChildCare
+import androidx.compose.material.icons.outlined.CleaningServices
 import androidx.compose.material.icons.outlined.Coffee
+import androidx.compose.material.icons.outlined.Computer
+import androidx.compose.material.icons.outlined.Construction
+import androidx.compose.material.icons.outlined.DirectionsBus
 import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.ElectricalServices
 import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Flight
+import androidx.compose.material.icons.outlined.Grass
+import androidx.compose.material.icons.outlined.Handyman
 import androidx.compose.material.icons.outlined.Headphones
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.HomeRepairService
+import androidx.compose.material.icons.outlined.Laptop
 import androidx.compose.material.icons.outlined.LocalCafe
 import androidx.compose.material.icons.outlined.LocalDrink
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.LocalHospital
+import androidx.compose.material.icons.outlined.LocalLaundryService
+import androidx.compose.material.icons.outlined.LocalShipping
 import androidx.compose.material.icons.outlined.MovieCreation
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.PhoneIphone
 import androidx.compose.material.icons.outlined.Pets
+import androidx.compose.material.icons.outlined.Plumbing
 import androidx.compose.material.icons.outlined.Restaurant
+import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material.icons.outlined.Soap
+import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.Train
 import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material.icons.outlined.Wifi
+import androidx.compose.material.icons.outlined.Yard
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
@@ -120,7 +139,37 @@ private val IconMap: Map<String, ImageVector> = mapOf(
     // Dairy (used in Household Ledger)
     "milk" to Icons.Outlined.LocalDrink,
     "water-drop" to Icons.Outlined.WaterDrop,
-    "drink" to Icons.Outlined.LocalDrink
+    "drink" to Icons.Outlined.LocalDrink,
+    // Maintenance & repair
+    "build" to Icons.Outlined.Build,
+    "tools" to Icons.Outlined.HomeRepairService,
+    "handyman" to Icons.Outlined.Handyman,
+    "construct" to Icons.Outlined.Construction,
+    "construction" to Icons.Outlined.Construction,
+    "cleaning" to Icons.Outlined.CleaningServices,
+    "plumbing" to Icons.Outlined.Plumbing,
+    "electrical" to Icons.Outlined.ElectricalServices,
+    "laundry" to Icons.Outlined.LocalLaundryService,
+    "soap" to Icons.Outlined.Soap,
+    "grass" to Icons.Outlined.Grass,
+    "yard" to Icons.Outlined.Yard,
+    "bath" to Icons.Outlined.Bathtub,
+    "spa" to Icons.Outlined.Spa,
+    // Delivery / logistics
+    "shipping" to Icons.Outlined.LocalShipping,
+    "delivery" to Icons.Outlined.LocalShipping,
+    // Tech
+    "laptop" to Icons.Outlined.Laptop,
+    "computer" to Icons.Outlined.Computer,
+    // Family & kids
+    "child-care" to Icons.Outlined.ChildCare,
+    "child" to Icons.Outlined.ChildCare,
+    "baby" to Icons.Outlined.ChildCare,
+    // Savings / protection
+    "shield" to Icons.Outlined.Shield,
+    "insurance" to Icons.Outlined.Shield,
+    "savings" to Icons.Outlined.Savings,
+    "piggy" to Icons.Outlined.Savings
 )
 
 /** Last-chance fuzzy lookup for Ionicons we didn't enumerate. */
@@ -136,5 +185,15 @@ private fun aliasMap(key: String): ImageVector? = when {
     key.contains("music") || key.contains("audio") -> Icons.Outlined.MusicNote
     key.contains("dairy") || key.contains("milk") -> Icons.Outlined.LocalDrink
     key.contains("phone") -> Icons.Outlined.PhoneIphone
+    key.contains("repair") || key.contains("fix") || key.contains("maint") ->
+        Icons.Outlined.HomeRepairService
+    key.contains("clean") || key.contains("wash") -> Icons.Outlined.CleaningServices
+    key.contains("plumb") -> Icons.Outlined.Plumbing
+    key.contains("electric") || key.contains("wiring") -> Icons.Outlined.ElectricalServices
+    key.contains("garden") || key.contains("lawn") -> Icons.Outlined.Grass
+    key.contains("deliver") || key.contains("ship") -> Icons.Outlined.LocalShipping
+    key.contains("baby") || key.contains("kid") -> Icons.Outlined.ChildCare
+    key.contains("insur") -> Icons.Outlined.Shield
+    key.contains("saving") -> Icons.Outlined.Savings
     else -> null
 }

@@ -71,28 +71,46 @@ private val ICON_GROUPS = listOf(
         listOf("cart", "fast-food", "restaurant", "cafe", "milk", "gift")
     ),
     IconGroup(
-        "Home",
+        "Home utilities",
         listOf("home", "flash", "water", "flame", "wifi", "phone-portrait")
+    ),
+    IconGroup(
+        "Maintenance & repair",
+        listOf(
+            "tools", "handyman", "build", "construct", "cleaning",
+            "plumbing", "electrical", "laundry", "soap", "bath"
+        )
+    ),
+    IconGroup(
+        "Garden & outdoor",
+        listOf("grass", "yard", "shipping")
     ),
     IconGroup(
         "Transport",
         listOf("car", "bus", "airplane", "train")
     ),
     IconGroup(
-        "Health & fitness",
-        listOf("medkit", "fitness", "heart")
+        "Health & wellness",
+        listOf("medkit", "fitness", "heart", "spa")
     ),
     IconGroup(
-        "Entertainment",
-        listOf("musical-notes", "game-controller", "film", "book", "school")
+        "Family & kids",
+        listOf("child-care", "paw")
+    ),
+    IconGroup(
+        "Tech & entertainment",
+        listOf(
+            "laptop", "computer", "musical-notes", "headset",
+            "game-controller", "film", "book", "school"
+        )
     ),
     IconGroup(
         "Money",
-        listOf("cash", "wallet", "card", "receipt")
+        listOf("cash", "wallet", "card", "receipt", "savings", "shield")
     ),
     IconGroup(
         "Personal",
-        listOf("shirt", "paw")
+        listOf("shirt", "brush")
     )
 )
 
@@ -145,6 +163,13 @@ fun AddCategoryScreen(
         ) {
             Spacer(Modifier.height(4.dp))
 
+            // Live preview — shows exactly how the category will render on Home / Reports.
+            CategoryPreview(
+                name = state.name,
+                icon = state.icon,
+                colorHex = state.color
+            )
+
             AppCard(contentPadding = PaddingValues(16.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
@@ -173,7 +198,7 @@ fun AddCategoryScreen(
                 }
             }
 
-            Text("Color", style = MaterialTheme.typography.titleSmall)
+            Text("COLOR", style = EyebrowCaps, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -191,25 +216,33 @@ fun AddCategoryScreen(
                 }
             }
 
-            Text("Icon", style = MaterialTheme.typography.titleSmall)
+            Text("ICON", style = EyebrowCaps, color = MaterialTheme.colorScheme.onSurfaceVariant)
             val tint = runCatching { Color(android.graphics.Color.parseColor(state.color)) }
                 .getOrDefault(MaterialTheme.colorScheme.primary)
-            ICON_NAMES.chunked(4).forEach { rowIcons ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    rowIcons.forEach { iconName ->
-                        IconChoice(
-                            iconName = iconName,
-                            selected = iconName == state.icon,
-                            tint = tint,
-                            onClick = { viewModel.setIcon(iconName) },
-                            modifier = Modifier.weight(1f)
-                        )
+
+            ICON_GROUPS.forEach { group ->
+                Text(
+                    group.title,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                group.icons.chunked(5).forEach { rowIcons ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        rowIcons.forEach { iconKey ->
+                            IconChoice(
+                                iconKey = iconKey,
+                                selected = iconKey == state.icon,
+                                tint = tint,
+                                onClick = { viewModel.setIcon(iconKey) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        val fill = 5 - rowIcons.size
+                        repeat(fill) { Spacer(Modifier.weight(1f)) }
                     }
-                    val fill = 4 - rowIcons.size
-                    repeat(fill) { Spacer(Modifier.weight(1f)) }
                 }
             }
 
@@ -268,25 +301,64 @@ private fun ColorDot(hex: String, selected: Boolean, onClick: () -> Unit) {
 
 @Composable
 private fun IconChoice(
-    iconName: String,
+    iconKey: String,
     selected: Boolean,
     tint: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val vector = resolveCategoryIcon(iconKey)
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(14.dp),
         color = if (selected) tint.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceVariant,
         border = if (selected) BorderStroke(1.5.dp, tint) else null,
-        modifier = modifier.height(64.dp)
+        modifier = modifier.height(56.dp)
     ) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-            Text(
-                text = iconName,
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-                color = if (selected) tint else MaterialTheme.colorScheme.onSurface
+            if (vector != null) {
+                Icon(
+                    imageVector = vector,
+                    contentDescription = iconKey,
+                    tint = if (selected) tint else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(24.dp)
+                )
+            } else {
+                Text(
+                    text = iconKey,
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = if (selected) tint else MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategoryPreview(name: String, icon: String, colorHex: String) {
+    AppCard(contentPadding = PaddingValues(18.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            CategoryPill(
+                icon = icon,
+                colorHex = colorHex,
+                size = 52.dp
             )
+            Spacer(Modifier.size(16.dp))
+            Column {
+                Text(
+                    "PREVIEW",
+                    style = EyebrowCaps,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = name.ifBlank { "Your category" },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (name.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant
+                    else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1
+                )
+            }
         }
     }
 }

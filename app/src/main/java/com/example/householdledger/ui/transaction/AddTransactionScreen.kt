@@ -57,6 +57,7 @@ import com.example.householdledger.data.model.Transaction
 import com.example.householdledger.ui.components.MoneyText
 import com.example.householdledger.ui.components.MoneyTone
 import com.example.householdledger.ui.theme.MoneyDisplay
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -70,11 +71,33 @@ private enum class TxnType(val key: String, val label: String, val icon: ImageVe
 /** Names that mark a category as "income-side" in our heuristic filter. */
 private val INCOME_KEYWORDS = listOf(
     "salary", "income", "bonus", "gift", "refund", "dividend",
-    "interest", "rental", "tankhwa"
+    "interest", "rental", "rent in", "freelance", "commission",
+    "tankhwa", "investment", "reimbursement", "cashback", "tip"
 )
 
 private fun Category.looksLikeIncome(): Boolean =
     INCOME_KEYWORDS.any { k -> name.contains(k, ignoreCase = true) }
+
+/** Curated quick-add suggestions for the income dropdown — each maps to a name,
+ *  a matching Ionicons key, and a palette colour. Tapping a suggestion creates
+ *  the category (if it doesn't already exist) and selects it. */
+private data class IncomeSuggestion(val name: String, val icon: String, val color: String)
+
+private val INCOME_SUGGESTIONS = listOf(
+    IncomeSuggestion("Salary",        "cash",     "#2F8F6A"),
+    IncomeSuggestion("Bonus",         "gift",     "#E8833A"),
+    IncomeSuggestion("Freelance",     "wallet",   "#0F766E"),
+    IncomeSuggestion("Commission",    "cash",     "#B08448"),
+    IncomeSuggestion("Rental income", "home",     "#6366F1"),
+    IncomeSuggestion("Investment",    "cash",     "#3B82F6"),
+    IncomeSuggestion("Dividend",      "cash",     "#8B5CF6"),
+    IncomeSuggestion("Interest",      "cash",     "#EC4899"),
+    IncomeSuggestion("Refund",        "receipt",  "#F59E0B"),
+    IncomeSuggestion("Reimbursement", "receipt",  "#D14343"),
+    IncomeSuggestion("Gift received", "gift",     "#E8833A"),
+    IncomeSuggestion("Cashback",      "wallet",   "#2F8F6A"),
+    IncomeSuggestion("Tip",           "cash",     "#0EA5E9")
+)
 
 /**
  * Recipient of a transfer. Either a servant or a member; persisted into
@@ -88,6 +111,17 @@ private sealed class Recipient {
 }
 
 /**
+ * Optional pre-fill for the sheet when it's opened from an "owed amount" flow
+ * (e.g. tapping the TOP UP pill on a servant's wallet). Forces Transfer mode
+ * and populates amount + recipient up-front.
+ */
+data class TransferPrefill(
+    val servantId: String? = null,
+    val memberId: String? = null,
+    val amount: Double
+)
+
+/**
  * Body of the Add/Edit Transaction modal bottom sheet. The sheet chrome (scrim,
  * drag handle, rounded top) is provided by the ModalBottomSheet in MainActivity.
  *
@@ -98,29 +132,36 @@ private sealed class Recipient {
 fun AddTransactionSheet(
     onClose: () -> Unit,
     editing: Transaction? = null,
+    prefill: TransferPrefill? = null,
     viewModel: AddTransactionViewModel = hiltViewModel()
 ) {
-    // Prefill from `editing` if we're in edit mode.
-    var amount by remember(editing?.id) {
+    // Prefill from `editing` first, then `prefill` (mutually exclusive in practice —
+    // the caller never uses both). A prefill forces Transfer mode with a locked amount.
+    val keying = editing?.id ?: prefill?.let { "prefill-${it.servantId}-${it.memberId}-${it.amount}" }
+    var amount by remember(keying) {
         mutableStateOf(
             editing?.amount?.let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() }
+                ?: prefill?.amount?.let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() }
                 ?: "0"
         )
     }
-    var type by remember(editing?.id) {
+    var type by remember(keying) {
         mutableStateOf(
-            when (editing?.type) {
-                "income" -> TxnType.Income
-                "transfer" -> TxnType.Transfer
+            when {
+                prefill != null -> TxnType.Transfer
+                editing?.type == "income" -> TxnType.Income
+                editing?.type == "transfer" -> TxnType.Transfer
                 else -> TxnType.Expense
             }
         )
     }
-    var selectedCategoryId by remember(editing?.id) { mutableStateOf(editing?.categoryId) }
-    var description by remember(editing?.id) { mutableStateOf(editing?.description.orEmpty()) }
+    val addTxnScope = androidx.compose.runtime.rememberCoroutineScope()
+
+    var selectedCategoryId by remember(keying) { mutableStateOf(editing?.categoryId) }
+    var description by remember(keying) { mutableStateOf(editing?.description.orEmpty()) }
     var categoryMenuOpen by remember { mutableStateOf(false) }
     var recipientMenuOpen by remember { mutableStateOf(false) }
-    var recipient by remember(editing?.id) {
+    var recipient by remember(keying) {
         mutableStateOf<Recipient?>(null) // resolved once data arrives
     }
 
@@ -129,14 +170,15 @@ fun AddTransactionSheet(
     val members by viewModel.members.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
 
-    // Resolve recipient once servants/members load in edit mode.
-    androidx.compose.runtime.LaunchedEffect(editing?.id, servants, members) {
-        if (editing == null) return@LaunchedEffect
-        recipient = editing.servantId?.let { sid ->
-            servants.firstOrNull { it.id == sid }?.let { Recipient.ServantR(it.id, it.name) }
-        } ?: editing.memberId?.let { mid ->
-            members.firstOrNull { it.id == mid }?.let { Recipient.MemberR(it.id, it.name) }
-        }
+    // Resolve recipient once servants/members load — for both edit mode and the
+    // Top-Up prefill flow.
+    androidx.compose.runtime.LaunchedEffect(editing?.id, prefill, servants, members) {
+        val sid = editing?.servantId ?: prefill?.servantId
+        val mid = editing?.memberId ?: prefill?.memberId
+        recipient = sid?.let { servants.firstOrNull { s -> s.id == it } }
+            ?.let { Recipient.ServantR(it.id, it.name) }
+            ?: mid?.let { members.firstOrNull { m -> m.id == it } }
+                ?.let { Recipient.MemberR(it.id, it.name) }
     }
 
     val selectedCategory = remember(selectedCategoryId, categories) {
@@ -215,14 +257,62 @@ fun AddTransactionSheet(
                         expanded = categoryMenuOpen,
                         onDismissRequest = { categoryMenuOpen = false }
                     ) {
-                        if (visibleCategories.isEmpty()) {
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        if (type == TxnType.Income) "No income categories yet — create one in Categories"
-                                        else "No matching categories"
+                        if (type == TxnType.Income) {
+                            // Existing income categories first…
+                            visibleCategories.forEach { category ->
+                                DropdownMenuItem(
+                                    text = { Text(category.name) },
+                                    onClick = {
+                                        selectedCategoryId = category.id
+                                        categoryMenuOpen = false
+                                    }
+                                )
+                            }
+                            // …then quick-add suggestions for any that don't exist yet.
+                            val existingNames = visibleCategories.map { it.name.lowercase() }.toSet()
+                            val missing = INCOME_SUGGESTIONS.filter {
+                                it.name.lowercase() !in existingNames
+                            }
+                            if (missing.isNotEmpty()) {
+                                if (visibleCategories.isNotEmpty()) {
+                                    androidx.compose.material3.HorizontalDivider()
+                                }
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "SUGGESTED",
+                                            style = com.example.householdledger.ui.theme.EyebrowCaps,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    },
+                                    onClick = {}, enabled = false
+                                )
+                                missing.forEach { suggestion ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text("+ ", color = MaterialTheme.colorScheme.primary,
+                                                    style = MaterialTheme.typography.titleSmall)
+                                                Text(suggestion.name)
+                                            }
+                                        },
+                                        onClick = {
+                                            categoryMenuOpen = false
+                                            addTxnScope.launch {
+                                                val created = viewModel.ensureCategory(
+                                                    name = suggestion.name,
+                                                    icon = suggestion.icon,
+                                                    colorHex = suggestion.color
+                                                )
+                                                if (created != null) selectedCategoryId = created.id
+                                            }
+                                        }
                                     )
-                                },
+                                }
+                            }
+                        } else if (visibleCategories.isEmpty()) {
+                            DropdownMenuItem(
+                                text = { Text("No matching categories") },
                                 onClick = { categoryMenuOpen = false }
                             )
                         } else {

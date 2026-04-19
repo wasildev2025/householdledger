@@ -10,6 +10,7 @@ import com.example.householdledger.data.repository.AuthRepository
 import com.example.householdledger.data.repository.CategoryRepository
 import com.example.householdledger.data.repository.PeopleRepository
 import com.example.householdledger.data.repository.TransactionRepository
+import kotlinx.coroutines.flow.first
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,7 +23,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AddTransactionViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
-    categoryRepository: CategoryRepository,
+    private val categoryRepository: CategoryRepository,
     peopleRepository: PeopleRepository,
     private val authRepository: AuthRepository
 ) : ViewModel() {
@@ -106,5 +107,32 @@ class AddTransactionViewModel @Inject constructor(
 
     fun deleteTransaction(tx: Transaction) {
         viewModelScope.launch { transactionRepository.deleteTransaction(tx) }
+    }
+
+    /**
+     * Create (or return the existing) category with the given display name.
+     * Meant to back the "Suggested" chips in the Income picker — users can log a
+     * one-off income without first visiting the Categories screen.
+     */
+    suspend fun ensureCategory(
+        name: String,
+        icon: String,
+        colorHex: String
+    ): Category? {
+        val householdId = authRepository.currentUser.value?.householdId ?: return null
+        val existing = categoryRepository.categories.first()
+            .firstOrNull { it.name.equals(name, ignoreCase = true) }
+        if (existing != null) return existing
+
+        val created = Category(
+            id = java.util.UUID.randomUUID().toString(),
+            name = name,
+            icon = icon,
+            color = colorHex,
+            budget = 0.0,
+            householdId = householdId
+        )
+        categoryRepository.addCategory(created)
+        return created
     }
 }

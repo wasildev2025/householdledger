@@ -83,6 +83,7 @@ fun HomeScreen(
     onNavigateToTransactions: () -> Unit,
     onNavigateToCategories: () -> Unit,
     onNavigateToPeople: () -> Unit,
+    onTopUpWallet: (WalletSummary, Double) -> Unit = { _, _ -> },
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -160,7 +161,7 @@ fun HomeScreen(
 
             if (state.wallets.isNotEmpty()) {
                 item { SectionHeader(title = "Wallets") }
-                item { WalletsRow(state.wallets) }
+                item { WalletsRow(state.wallets, onTopUp = onTopUpWallet) }
             }
 
             if (state.upcomingBills.isNotEmpty()) {
@@ -392,7 +393,10 @@ private fun AiInsightCard(text: String, onTap: () -> Unit) {
 }
 
 @Composable
-private fun WalletsRow(wallets: List<WalletSummary>) {
+private fun WalletsRow(
+    wallets: List<WalletSummary>,
+    onTopUp: (WalletSummary, Double) -> Unit
+) {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         contentPadding = PaddingValues(horizontal = 2.dp)
@@ -405,7 +409,8 @@ private fun WalletsRow(wallets: List<WalletSummary>) {
                 transferredIn = w.transferredIn,
                 netBalance = w.netBalance,
                 allocation = w.allocation,
-                identityKey = w.kind + w.id
+                identityKey = w.kind + w.id,
+                onTopUp = { owedAmount -> onTopUp(w, owedAmount) }
             )
         }
     }

@@ -50,7 +50,8 @@ fun WalletPocketCard(
     allocation: Double,    // 0 if none
     identityKey: String,   // stable id for palette hash
     modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
+    onTopUp: ((Double) -> Unit)? = null  // invoked when the owed pill is tapped
 ) {
     val (top, bottom) = paletteFor(identityKey)
 
@@ -135,8 +136,14 @@ fun WalletPocketCard(
                     }
                     Spacer(Modifier.height(8.dp))
                     // Balance / owed strip. The sign and label flip based on whether the
-                    // person has money left or admin now owes them.
-                    BalanceStrip(netBalance = netBalance)
+                    // person has money left or admin now owes them. When owed, the strip
+                    // becomes a tappable "Top Up" CTA that opens a prefilled Transfer sheet.
+                    BalanceStrip(
+                        netBalance = netBalance,
+                        onTopUp = if (netBalance < 0 && onTopUp != null) {
+                            { onTopUp(kotlin.math.abs(netBalance)) }
+                        } else null
+                    )
                 }
             }
         }
@@ -161,7 +168,7 @@ private fun WalletStat(label: String, amount: Double, modifier: Modifier = Modif
 }
 
 @Composable
-private fun BalanceStrip(netBalance: Double) {
+private fun BalanceStrip(netBalance: Double, onTopUp: (() -> Unit)? = null) {
     val owed = netBalance < 0
     val label = when {
         netBalance == 0.0 -> "SETTLED"
@@ -169,10 +176,13 @@ private fun BalanceStrip(netBalance: Double) {
         else -> "WALLET BALANCE"
     }
     val accent = if (owed) Color(0xFFFFB4A0) else Color(0xFF7CE4B4)
+    val surfaceModifier = Modifier.fillMaxWidth()
     Surface(
         shape = RoundedCornerShape(999.dp),
-        color = Color.White.copy(alpha = 0.14f),
-        modifier = Modifier.fillMaxWidth()
+        color = Color.White.copy(alpha = if (owed && onTopUp != null) 0.22f else 0.14f),
+        modifier = surfaceModifier,
+        onClick = onTopUp ?: {},
+        enabled = onTopUp != null
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),

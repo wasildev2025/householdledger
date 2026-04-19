@@ -86,8 +86,9 @@ class CategoryViewModel @Inject constructor(
 
 data class AddCategoryState(
     val name: String = "",
-    val icon: String = "Category",
-    val color: String = "#6366F1",
+    val icon: String = "cart",    // Ionicons key, matches a default IconGroup entry
+    val color: String = "#E8833A", // saffron — matches the app's primary accent
+
     val budget: String = "",
     val isSaving: Boolean = false,
     val error: String? = null,
@@ -108,8 +109,10 @@ class AddCategoryViewModel @Inject constructor(
         editingId = category.id
         _state.value = AddCategoryState(
             name = category.name,
-            icon = category.icon.ifBlank { "Category" },
-            color = category.color.ifBlank { "#6366F1" },
+            // Stored icon is an Ionicons key; keep as-is so the picker highlights
+            // the same icon when reopened.
+            icon = category.icon,
+            color = category.color.ifBlank { "#E8833A" },
             budget = if (category.budget > 0) category.budget.toString() else ""
         )
     }

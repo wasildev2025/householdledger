@@ -134,6 +134,14 @@ fun CyclePulseHero(
                             style = MoneyHero.copy(fontSize = androidx.compose.ui.unit.TextUnit.Unspecified),
                             color = Color.White
                         )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            // Projection = (spend so far / day index) × cycle length.
+                            // Call that out so users understand why it's larger than actual.
+                            text = "at current pace",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.68f)
+                        )
                     }
                 }
 
