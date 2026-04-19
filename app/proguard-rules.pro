@@ -19,3 +19,12 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Strip low-severity Log calls in release builds so household IDs, user IDs,
+# and other debug-only breadcrumbs never reach production logs / bug reports.
+# Log.w and Log.e remain so genuine errors are still reported.
+-assumenosideeffects class android.util.Log {
+    public static *** v(...);
+    public static *** d(...);
+    public static *** i(...);
+}

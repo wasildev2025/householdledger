@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Network Security Config.
+    Deny cleartext traffic app-wide (Supabase is HTTPS-only).
+    Release builds additionally enforce the Android system CA store.
+    Debug overrides allow installed user CAs so you can proxy traffic
+    (e.g. Charles / mitmproxy) while developing.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+</network-security-config>

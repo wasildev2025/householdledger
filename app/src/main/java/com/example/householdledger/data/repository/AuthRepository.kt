@@ -1,6 +1,7 @@
 package com.example.householdledger.data.repository
 
 import android.util.Log
+import com.example.householdledger.BuildConfig
 import com.example.householdledger.data.model.UserProfile
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.providers.builtin.Email
@@ -54,7 +55,9 @@ class AuthRepository @Inject constructor(
             }
 
             val resolved = profile.copy(name = resolvedName ?: profile.name)
-            Log.d(TAG, "loadProfile: id=${user.id} profileName=${profile.name} resolved=$resolvedName")
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "loadProfile: id=${user.id} profileName=${profile.name} resolved=$resolvedName")
+            }
             _currentUser.value = resolved
         } catch (e: Exception) {
             Log.e(TAG, "loadProfile failed", e)

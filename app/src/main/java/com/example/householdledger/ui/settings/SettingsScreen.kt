@@ -170,21 +170,23 @@ fun SettingsScreen(
                             onChange = viewModel::setBiometric,
                             enabled = BiometricHelper.canAuthenticate(context)
                         )
-                        Divider()
-                        RowItem(
-                            icon = Icons.Outlined.Savings,
-                            title = "Monthly budget",
-                            subtitle = if (state.monthlyBudget > 0) "%,.0f".format(state.monthlyBudget)
-                            else "Not set",
-                            onClick = { budgetDialog = true }
-                        )
-                        Divider()
-                        RowItem(
-                            icon = Icons.Outlined.CalendarMonth,
-                            title = "Cycle start day",
-                            subtitle = "Transactions roll over on day ${state.cycleStartDay} of each month",
-                            onClick = { cycleDialog = true }
-                        )
+                        if (currentUser?.role == "admin") {
+                            Divider()
+                            RowItem(
+                                icon = Icons.Outlined.Savings,
+                                title = "Monthly budget",
+                                subtitle = if (state.monthlyBudget > 0) "%,.0f".format(state.monthlyBudget)
+                                else "Not set",
+                                onClick = { budgetDialog = true }
+                            )
+                            Divider()
+                            RowItem(
+                                icon = Icons.Outlined.CalendarMonth,
+                                title = "Cycle start day",
+                                subtitle = "Transactions roll over on day ${state.cycleStartDay} of each month",
+                                onClick = { cycleDialog = true }
+                            )
+                        }
                     }
                 }
             }

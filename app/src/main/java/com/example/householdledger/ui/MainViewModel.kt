@@ -87,7 +87,7 @@ class MainViewModel @Inject constructor(
                     transactionRepository.subscribeRealtime()
                     peopleRepository.subscribeRealtime()
                     dairyRepository.subscribeRealtime()
-                    launch { messageRepository.subscribeToMessages(householdId) }
+                    messageRepository.subscribeToMessages(householdId)
                     Log.d(TAG, "bootSync: done for household=$householdId")
                 }
         }

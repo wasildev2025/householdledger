@@ -193,6 +193,29 @@ private inline fun <T> androidx.compose.foundation.lazy.LazyListScope.items(
 
 @Composable
 private fun MonthSummaryCard(state: TxnListState) {
+    // Hero follows the active filter — if you chose Income, you see income totals;
+    // if Transfer, transfer totals. The two supporting chips below always show the
+    // other flows for context.
+    val (heroLabel, heroAmount, heroTone) = when (state.filter) {
+        TxnFilter.Income -> Triple("INCOME THIS CYCLE", state.monthIncome, MoneyTone.Income)
+        TxnFilter.Transfer -> Triple("TRANSFERS THIS CYCLE", state.monthTransfers, MoneyTone.Neutral)
+        TxnFilter.Expense, TxnFilter.All -> Triple("SPEND THIS CYCLE", state.monthSpend, MoneyTone.Expense)
+    }
+    val supportingStats: List<Triple<String, Double, MoneyTone>> = when (state.filter) {
+        TxnFilter.Income -> listOf(
+            Triple("Expense", state.monthSpend, MoneyTone.Expense),
+            Triple("Transfers", state.monthTransfers, MoneyTone.Neutral)
+        )
+        TxnFilter.Transfer -> listOf(
+            Triple("Income", state.monthIncome, MoneyTone.Income),
+            Triple("Expense", state.monthSpend, MoneyTone.Expense)
+        )
+        TxnFilter.Expense, TxnFilter.All -> listOf(
+            Triple("Income", state.monthIncome, MoneyTone.Income),
+            Triple("Transfers", state.monthTransfers, MoneyTone.Neutral)
+        )
+    }
+
     AppCard(contentPadding = PaddingValues(20.dp)) {
         Column {
             Row(
@@ -201,7 +224,7 @@ private fun MonthSummaryCard(state: TxnListState) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "SPEND THIS CYCLE",
+                    heroLabel,
                     style = com.example.householdledger.ui.theme.EyebrowCaps,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -213,29 +236,27 @@ private fun MonthSummaryCard(state: TxnListState) {
             }
             Spacer(Modifier.height(8.dp))
             MoneyText(
-                amount = state.monthSpend,
+                amount = heroAmount,
                 style = com.example.householdledger.ui.theme.MoneyHero.copy(
                     fontSize = androidx.compose.ui.unit.TextUnit.Unspecified
                 ),
-                color = MaterialTheme.colorScheme.onSurface
+                tone = heroTone,
+                color = if (heroTone == MoneyTone.Neutral) MaterialTheme.colorScheme.onSurface
+                else androidx.compose.ui.graphics.Color.Unspecified
             )
             Spacer(Modifier.height(14.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                FlowStat(
-                    label = "Income",
-                    amount = state.monthIncome,
-                    tone = MoneyTone.Income,
-                    modifier = Modifier.weight(1f)
-                )
-                FlowStat(
-                    label = "Transfers",
-                    amount = state.monthTransfers,
-                    tone = MoneyTone.Neutral,
-                    modifier = Modifier.weight(1f)
-                )
+                supportingStats.forEach { (label, amount, tone) ->
+                    FlowStat(
+                        label = label,
+                        amount = amount,
+                        tone = tone,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
             Spacer(Modifier.height(14.dp))
             Row(

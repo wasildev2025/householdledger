@@ -141,15 +141,15 @@ fun CyclePulseHero(
                 PaceVerdict(projectedOverrunPercent, budgetCap)
 
                 Spacer(Modifier.height(18.dp))
+                // Always render all three flow stats so users can see transfers is really 0
+                // (previously it was hidden when == 0, which looked like the feature was missing).
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     MiniStat(label = "Spent", amount = expenseSoFar, modifier = Modifier.weight(1f))
                     MiniStat(label = "Income", amount = income, modifier = Modifier.weight(1f))
-                    if (transfers > 0) {
-                        MiniStat(label = "Transfers", amount = transfers, modifier = Modifier.weight(1f))
-                    }
+                    MiniStat(label = "Transfers", amount = transfers, modifier = Modifier.weight(1f))
                 }
             }
         }
@@ -301,13 +301,19 @@ private fun MiniStat(label: String, amount: Double, modifier: Modifier = Modifie
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = Color.White.copy(alpha = 0.72f)
+            color = Color.White.copy(alpha = 0.72f),
+            maxLines = 1
         )
         Spacer(Modifier.height(4.dp))
+        // Titlesmall keeps three money columns readable on narrow phones where
+        // titleMedium used to overflow and clip the transfers value.
         MoneyText(
             amount = amount,
-            style = MaterialTheme.typography.titleMedium,
-            color = Color.White
+            style = MaterialTheme.typography.titleSmall.copy(
+                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+            ),
+            color = Color.White,
+            modifier = Modifier.then(Modifier)
         )
     }
 }

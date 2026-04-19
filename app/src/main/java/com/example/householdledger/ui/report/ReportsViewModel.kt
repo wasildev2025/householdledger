@@ -64,8 +64,14 @@ data class ReportsUiState(
 
 @Serializable
 private data class InsightRequest(val householdId: String)
+
+/** Response shape matches the `generate-insight` edge function exactly. */
 @Serializable
-private data class InsightResponse(val insights: String)
+private data class InsightResponse(
+    val title: String = "",
+    val insight: String = "",
+    val type: String = "tip"
+)
 
 @HiltViewModel
 class ReportsViewModel @Inject constructor(
@@ -179,13 +185,15 @@ class ReportsViewModel @Inject constructor(
             aiLoading.value = true
             try {
                 val response = supabaseClient.functions.invoke(
-                    function = "generate-insights",
+                    function = "generate-insight",
                     body = InsightRequest(householdId)
                 )
                 val data = response.body<InsightResponse>()
-                aiInsight.value = data.insights
+                val copy = data.insight.ifBlank { data.title }
+                aiInsight.value = copy.ifBlank { "No insight yet — log more transactions and try again." }
             } catch (e: Exception) {
-                aiInsight.value = "Offline — try again later to see AI insights."
+                android.util.Log.w("ReportsVM", "AI insight failed", e)
+                aiInsight.value = "Couldn't reach the insight service — check your connection and try again."
             } finally {
                 aiLoading.value = false
             }

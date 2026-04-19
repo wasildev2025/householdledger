@@ -23,7 +23,6 @@ class PreferenceManager @Inject constructor(
         val BIOMETRIC_ENABLED = booleanPreferencesKey("biometric_enabled")
         val MONTHLY_BUDGET = doublePreferencesKey("monthly_budget")
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
-        val SESSION_TOKEN = stringPreferencesKey("session_token")
         val CYCLE_START_DAY = intPreferencesKey("cycle_start_day")
     }
 
@@ -65,12 +64,4 @@ class PreferenceManager @Inject constructor(
         context.dataStore.edit { it[CYCLE_START_DAY] = day.coerceIn(1, 31) }
     }
 
-    suspend fun setSessionToken(token: String?) {
-        context.dataStore.edit {
-            if (token != null) it[SESSION_TOKEN] = token
-            else it.remove(SESSION_TOKEN)
-        }
-    }
-
-    val sessionToken: Flow<String?> = context.dataStore.data.map { it[SESSION_TOKEN] }
 }
