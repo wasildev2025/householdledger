@@ -1,6 +1,7 @@
 package com.example.householdledger.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -55,23 +57,21 @@ fun WalletPocketCard(
 ) {
     val (top, bottom) = paletteFor(identityKey)
 
-    Surface(
-        modifier = modifier
-            .width(260.dp)
-            .height(170.dp),
-        shape = RoundedCornerShape(22.dp),
-        color = Color.Transparent,
-        onClick = onClick ?: {},
-        enabled = onClick != null
+    // Plain clipped Box instead of Surface(onClick). A Surface with
+    // `onClick = {}, enabled = false` still installs a clickable modifier that
+    // silently consumes touches intended for the inner Top-Up pill.
+    val cardModifier = modifier
+        .width(260.dp)
+        .height(170.dp)
+        .clip(RoundedCornerShape(22.dp))
+        .let { base -> if (onClick != null) base.clickable(onClick = onClick) else base }
+
+    Box(
+        modifier = cardModifier
+            .background(
+                brush = Brush.linearGradient(colors = listOf(top, bottom))
+            )
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.linearGradient(colors = listOf(top, bottom)),
-                    shape = RoundedCornerShape(22.dp)
-                )
-        ) {
             // Subtle radial "sheen" in upper right for depth
             Box(
                 modifier = Modifier
@@ -146,7 +146,6 @@ fun WalletPocketCard(
                     )
                 }
             }
-        }
     }
 }
 

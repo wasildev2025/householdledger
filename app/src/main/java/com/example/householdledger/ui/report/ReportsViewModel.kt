@@ -190,14 +190,74 @@ class ReportsViewModel @Inject constructor(
                 )
                 val data = response.body<InsightResponse>()
                 val copy = data.insight.ifBlank { data.title }
-                aiInsight.value = copy.ifBlank { "No insight yet — log more transactions and try again." }
+                aiInsight.value = copy.ifBlank { buildLocalInsight() }
             } catch (e: Exception) {
-                android.util.Log.w("ReportsVM", "AI insight failed", e)
-                aiInsight.value = "Couldn't reach the insight service — check your connection and try again."
+                // Edge function missing / offline / rate-limited — fall back to a
+                // deterministic rule-based insight built from the current state.
+                // Users still get value; they just don't get Gemini-quality prose.
+                android.util.Log.w("ReportsVM", "AI insight unavailable, using local fallback", e)
+                aiInsight.value = buildLocalInsight()
             } finally {
                 aiLoading.value = false
             }
         }
+    }
+
+    /**
+     * Heuristic insight assembled from the current [ReportsUiState] — used
+     * whenever the Gemini edge function isn't reachable.
+     *
+     * Looks at: net balance, top category, vs-previous-cycle delta, peak day.
+     * Combines the most informative finding into a single sentence.
+     */
+    private fun buildLocalInsight(): String {
+        val s = uiState.value
+        if (s.transactionCount == 0) {
+            return "Nothing logged this cycle yet. Add a transaction and I'll spot a pattern."
+        }
+
+        val expense = s.expense
+        val prevExpense = s.prevExpense
+        val income = s.income
+        val balance = s.balance
+
+        val lines = mutableListOf<String>()
+
+        // 1. Delta vs previous cycle.
+        if (prevExpense > 0 && expense > 0) {
+            val change = (expense - prevExpense) / prevExpense
+            val pct = kotlin.math.abs(change * 100).toInt()
+            when {
+                change >= 0.15 -> lines += "You're spending $pct% more than last cycle."
+                change <= -0.15 -> lines += "You're spending $pct% less than last cycle — nice."
+            }
+        }
+
+        // 2. Top category.
+        val top = s.breakdown.maxByOrNull { it.total }
+        if (top != null && expense > 0) {
+            val pct = ((top.total / expense) * 100).toInt()
+            if (pct >= 25) {
+                lines += "${top.categoryName} alone accounts for $pct% of expenses."
+            }
+        }
+
+        // 3. Peak day.
+        if (s.peakDailyExpense > 0 && expense > 0 && s.peakDailyExpense / expense > 0.25) {
+            val pct = ((s.peakDailyExpense / expense) * 100).toInt()
+            lines += "Your heaviest day was $pct% of the cycle's spend."
+        }
+
+        // 4. Healthy fallback.
+        if (lines.isEmpty()) {
+            lines += when {
+                balance > 0 -> "You're net positive by %.0f this cycle.".format(balance)
+                income == 0.0 -> "No income logged this cycle yet — budget will flag as over-pace until you add some."
+                else -> "Steady cycle so far — nothing out of the ordinary."
+            }
+        }
+
+        return lines.joinToString(" ")
     }
 
     fun formatCycleLabel(start: LocalDate, endInclusive: LocalDate): String {
