@@ -124,7 +124,9 @@ private fun AppContent(viewModel: MainViewModel) {
     val showBottomBar = currentRoute in navItems.map { it.route }
 
     var showAddSheet by remember { mutableStateOf(false) }
+    var showVoiceSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val voiceSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val sheetScope = androidx.compose.runtime.rememberCoroutineScope()
 
     // Boot routing: when boot state changes, push the right root.
@@ -169,7 +171,8 @@ private fun AppContent(viewModel: MainViewModel) {
                             restoreState = true
                         }
                     },
-                    onFabClick = { showAddSheet = true }
+                    onFabClick = { showAddSheet = true },
+                    onFabLongClick = { showVoiceSheet = true }
                 )
             }
         }
@@ -301,6 +304,34 @@ private fun AppContent(viewModel: MainViewModel) {
                     onClose = {
                         sheetScope.launch { sheetState.hide() }.invokeOnCompletion {
                             showAddSheet = false
+                        }
+                    }
+                )
+            }
+        }
+
+        if (showVoiceSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showVoiceSheet = false },
+                sheetState = voiceSheetState,
+                containerColor = MaterialTheme.colorScheme.surface,
+                dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle() }
+            ) {
+                com.example.householdledger.ui.transaction.VoiceAddSheet(
+                    onClose = {
+                        sheetScope.launch { voiceSheetState.hide() }.invokeOnCompletion {
+                            showVoiceSheet = false
+                        }
+                    },
+                    onSave = {
+                        sheetScope.launch { voiceSheetState.hide() }.invokeOnCompletion {
+                            showVoiceSheet = false
+                        }
+                    },
+                    onEditManually = {
+                        sheetScope.launch { voiceSheetState.hide() }.invokeOnCompletion {
+                            showVoiceSheet = false
+                            showAddSheet = true
                         }
                     }
                 )

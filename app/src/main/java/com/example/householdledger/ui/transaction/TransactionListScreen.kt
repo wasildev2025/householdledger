@@ -20,11 +20,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.automirrored.outlined.TrendingDown
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material.icons.outlined.SwapHoriz
+import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -42,7 +44,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -57,6 +61,8 @@ import com.example.householdledger.ui.components.MoneyText
 import com.example.householdledger.ui.components.MoneyTone
 import com.example.householdledger.util.DateUtil
 
+private enum class ViewMode { List, Timeline }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionListScreen(
@@ -66,6 +72,7 @@ fun TransactionListScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val listState = rememberLazyListState()
+    var viewMode by remember { mutableStateOf(ViewMode.List) }
 
     val reachedBottom by remember {
         derivedStateOf {
@@ -90,6 +97,21 @@ fun TransactionListScreen(
                     }
                 },
                 title = { Text("Transactions", style = MaterialTheme.typography.titleLarge) },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            viewMode = if (viewMode == ViewMode.List) ViewMode.Timeline else ViewMode.List
+                        }
+                    ) {
+                        Icon(
+                            imageVector = if (viewMode == ViewMode.List)
+                                Icons.Outlined.Timeline
+                            else
+                                Icons.AutoMirrored.Outlined.FormatListBulleted,
+                            contentDescription = if (viewMode == ViewMode.List) "Switch to timeline" else "Switch to list"
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
@@ -133,9 +155,14 @@ fun TransactionListScreen(
                         )
                     }
                 } else {
-                    state.sections.forEach { section ->
-                        item(key = "header-${section.label}") { DayHeader(section) }
-                        item(key = "group-${section.label}") { DayGroupCard(section.rows) }
+                    when (viewMode) {
+                        ViewMode.List -> {
+                            state.sections.forEach { section ->
+                                item(key = "header-${section.label}") { DayHeader(section) }
+                                item(key = "group-${section.label}") { DayGroupCard(section.rows) }
+                            }
+                        }
+                        ViewMode.Timeline -> transactionsTimeline(state.sections)
                     }
                     if (state.canLoadMore) {
                         item {

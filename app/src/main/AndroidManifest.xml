@@ -10,6 +10,14 @@
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <uses-feature android:name="android.hardware.fingerprint" android:required="false" />
 
+    <!-- Android 11+ package visibility: needed so SpeechRecognizer can find
+         the on-device recognition service (e.g. Google app). -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
     <application
         android:name=".HouseholdLedgerApplication"
         android:allowBackup="true"

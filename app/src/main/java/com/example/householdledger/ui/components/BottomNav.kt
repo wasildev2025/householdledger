@@ -1,7 +1,9 @@
 package com.example.householdledger.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -50,12 +52,14 @@ data class BottomNavItem(
  *
  * The FAB floats 20dp above the bar, matching the reference aesthetic.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BottomNavWithFab(
     items: List<BottomNavItem>,
     currentRoute: String?,
     onSelect: (String) -> Unit,
     onFabClick: () -> Unit,
+    onFabLongClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     require(items.size == 4) { "BottomNavWithFab expects exactly 4 items" }
@@ -101,7 +105,7 @@ fun BottomNavWithFab(
             }
         }
 
-        // Raised center FAB
+        // Raised center FAB — tap adds a transaction manually, long-press opens voice entry.
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -109,10 +113,11 @@ fun BottomNavWithFab(
                 .size(60.dp)
                 .shadow(elevation = 10.dp, shape = CircleShape)
                 .background(MaterialTheme.colorScheme.primary, CircleShape)
-                .clickable(
+                .combinedClickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
-                    onClick = onFabClick
+                    onClick = onFabClick,
+                    onLongClick = onFabLongClick
                 ),
             contentAlignment = Alignment.Center
         ) {

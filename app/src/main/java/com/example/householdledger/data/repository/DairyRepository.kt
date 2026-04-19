@@ -61,6 +61,13 @@ class DairyRepository @Inject constructor(
         } catch (e: Exception) { e.printStackTrace() }
     }
 
+    suspend fun updateDairyLog(log: DairyLog) {
+        dairyDao.insertLog(log) // REPLACE strategy — effectively update
+        try {
+            postgrest.from("dairy_logs").update(log) { filter { eq("id", log.id) } }
+        } catch (e: Exception) { Log.e(TAG, "updateDairyLog failed", e) }
+    }
+
     fun subscribeRealtime() {
         val householdId = authRepository.currentUser.value?.householdId ?: return
         realtimeJob?.cancel()

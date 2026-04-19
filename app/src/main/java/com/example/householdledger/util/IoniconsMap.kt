@@ -1,10 +1,10 @@
 package com.example.householdledger.util
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.DirectionsBus
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.DirectionsBus
 import androidx.compose.material.icons.outlined.AttachMoney
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Brush
@@ -88,7 +88,7 @@ private val IconMap: Map<String, ImageVector> = mapOf(
     // Transport
     "car" to Icons.Outlined.DirectionsCar,
     "car-sport" to Icons.Outlined.DirectionsCar,
-    "bus" to Icons.AutoMirrored.Outlined.DirectionsBus,
+    "bus" to Icons.Outlined.DirectionsBus,
     "train" to Icons.Outlined.Train,
     "airplane" to Icons.Outlined.Flight,
     // Health
