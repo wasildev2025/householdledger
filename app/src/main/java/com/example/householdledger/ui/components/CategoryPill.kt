@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.householdledger.util.resolveCategoryIcon
 
 /**
  * Renders a colored circular badge with an emoji/letter for a category.
@@ -36,17 +38,27 @@ fun CategoryPill(
         MaterialTheme.colorScheme.onPrimaryContainer
     }
 
+    val vector = resolveCategoryIcon(icon)
     Box(
         modifier = modifier
             .size(size)
             .background(background, CircleShape),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = icon.ifBlank { "•" },
-            style = TextStyle(fontSize = (size.value * 0.45f).sp, fontWeight = FontWeight.SemiBold),
-            color = onBackground
-        )
+        if (vector != null) {
+            Icon(
+                imageVector = vector,
+                contentDescription = null,
+                tint = onBackground,
+                modifier = Modifier.size(size * 0.52f)
+            )
+        } else {
+            Text(
+                text = icon.ifBlank { "•" },
+                style = TextStyle(fontSize = (size.value * 0.45f).sp, fontWeight = FontWeight.SemiBold),
+                color = onBackground
+            )
+        }
     }
 }
 

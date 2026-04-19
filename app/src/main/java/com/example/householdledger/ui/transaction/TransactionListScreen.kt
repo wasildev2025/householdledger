@@ -492,6 +492,7 @@ private fun TransactionRow(row: TxnListRow) {
         CategoryLogo(
             name = row.category?.name ?: txn.description,
             colorHex = row.category?.color,
+            iconName = row.category?.icon,
             fallbackIcon = icon
         )
         Spacer(Modifier.width(14.dp))

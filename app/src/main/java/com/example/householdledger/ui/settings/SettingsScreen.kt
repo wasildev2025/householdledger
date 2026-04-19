@@ -99,25 +99,31 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item {
-                AppCard(contentPadding = PaddingValues(18.dp)) {
+                AppCard(contentPadding = PaddingValues(20.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Avatar(name = currentUser?.name ?: "?", size = 56.dp)
-                        Spacer(Modifier.width(16.dp))
+                        Avatar(name = currentUser?.name ?: "?", size = 64.dp)
+                        Spacer(Modifier.width(18.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                currentUser?.name ?: "Unknown",
-                                style = MaterialTheme.typography.titleMedium
+                                "SIGNED IN",
+                                style = com.example.householdledger.ui.theme.EyebrowCaps,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(Modifier.height(4.dp))
+                            Text(
+                                currentUser?.name ?: "Unknown",
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                            Spacer(Modifier.height(6.dp))
                             Surface(
-                                shape = RoundedCornerShape(999.dp),
-                                color = MaterialTheme.colorScheme.secondaryContainer
+                                shape = com.example.householdledger.ui.theme.PillShape,
+                                color = MaterialTheme.colorScheme.primaryContainer
                             ) {
                                 Text(
                                     (currentUser?.role ?: "member").replaceFirstChar { it.uppercase() },
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
                                 )
                             }
                         }
@@ -216,14 +222,14 @@ fun SettingsScreen(
             if (exportMessage != null) {
                 item {
                     Surface(
-                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        color = MaterialTheme.colorScheme.primaryContainer,
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
                             exportMessage!!,
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(14.dp),
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
                 }
@@ -344,7 +350,7 @@ private fun CycleStartDayDialog(initial: Int, onSave: (Int) -> Unit, onDismiss: 
 private fun Divider() {
     androidx.compose.material3.HorizontalDivider(
         color = MaterialTheme.colorScheme.outlineVariant,
-        modifier = Modifier.padding(start = 60.dp)
+        modifier = Modifier.padding(start = 68.dp)
     )
 }
 
@@ -359,25 +365,30 @@ private fun RowItem(
     Row(
         modifier = Modifier.fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 14.dp),
+            .padding(horizontal = 14.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Surface(
-            shape = RoundedCornerShape(10.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            modifier = Modifier.size(36.dp)
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.primaryContainer,
+            modifier = Modifier.size(40.dp)
         ) {
-            Icon(icon, null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(8.dp))
+            Icon(
+                icon, null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(9.dp)
+            )
         }
         Spacer(Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             if (subtitle != null) {
                 Spacer(Modifier.height(2.dp))
-                Text(subtitle, style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
         if (trailing != null) trailing()

@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.example.householdledger.util.resolveCategoryIcon
 
 /**
  * Brand-style category logo. Matches common merchant names to a known brand
@@ -30,9 +31,17 @@ fun CategoryLogo(
     name: String,
     colorHex: String?,
     fallbackIcon: ImageVector? = null,
+    iconName: String? = null,
     size: Dp = 40.dp
 ) {
+    // Preference order:
+    //   1. Known brand (YouTube, Netflix, …) → colored square with letter-mark
+    //   2. Category's own icon name (Ionicons) → Material icon on the category color
+    //   3. First letter of the name on the category color
+    //   4. fallbackIcon (transaction-type arrow) if even the name is blank
     val brand = brandFor(name)
+    val categoryIcon = iconName?.let(::resolveCategoryIcon)
+
     val color = brand?.color
         ?: parseHex(colorHex)
         ?: MaterialTheme.colorScheme.primary
@@ -43,15 +52,27 @@ fun CategoryLogo(
             .background(color, RoundedCornerShape(size / 3)),
         contentAlignment = Alignment.Center
     ) {
-        if (brand == null && fallbackIcon != null && name.isBlank()) {
-            Icon(
+        when {
+            brand != null -> Text(
+                letter,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            )
+            categoryIcon != null -> Icon(
+                imageVector = categoryIcon,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(size * 0.55f)
+            )
+            fallbackIcon != null && name.isBlank() -> Icon(
                 fallbackIcon,
                 null,
                 tint = Color.White,
                 modifier = Modifier.size(size * 0.55f)
             )
-        } else {
-            Text(
+            else -> Text(
                 letter,
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold,
