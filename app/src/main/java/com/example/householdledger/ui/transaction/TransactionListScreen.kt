@@ -92,13 +92,6 @@ fun TransactionListScreen(
                 title = { Text("Transactions", style = MaterialTheme.typography.titleLarge) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAdd,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) { Icon(Icons.Filled.Add, "Add") }
         }
     ) { padding ->
         PullToRefreshBox(
@@ -195,34 +188,37 @@ private fun MonthSummaryCard(state: TxnListState) {
                 ),
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(14.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FlowStat(
+                    label = "Income",
+                    amount = state.monthIncome,
+                    tone = MoneyTone.Income,
+                    modifier = Modifier.weight(1f)
+                )
+                FlowStat(
+                    label = "Transfers",
+                    amount = state.monthTransfers,
+                    tone = MoneyTone.Neutral,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Spacer(Modifier.height(14.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IncomeDot()
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        "Income",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    MoneyText(
-                        amount = state.monthIncome,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        tone = MoneyTone.Income
-                    )
-                }
                 Text(
                     "Day ${state.cycleDayIndex + 1} / ${state.cycleLengthDays}",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = com.example.householdledger.ui.theme.EyebrowCaps,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
             CycleProgressBar(
                 dayIndex = state.cycleDayIndex,
                 lengthDays = state.cycleLengthDays
@@ -232,15 +228,40 @@ private fun MonthSummaryCard(state: TxnListState) {
 }
 
 @Composable
-private fun IncomeDot() {
-    Box(
-        modifier = Modifier
-            .size(8.dp)
-            .background(
-                com.example.householdledger.ui.theme.appColors.income,
-                androidx.compose.foundation.shape.CircleShape
+private fun FlowStat(
+    label: String,
+    amount: Double,
+    tone: MoneyTone,
+    modifier: Modifier = Modifier
+) {
+    val dotColor = when (tone) {
+        MoneyTone.Income -> com.example.householdledger.ui.theme.appColors.income
+        MoneyTone.Expense -> com.example.householdledger.ui.theme.appColors.expense
+        MoneyTone.Neutral -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(dotColor, androidx.compose.foundation.shape.CircleShape)
+        )
+        Spacer(Modifier.width(10.dp))
+        Column {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-    )
+            MoneyText(
+                amount = amount,
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                tone = tone
+            )
+        }
+    }
 }
 
 @Composable
@@ -436,9 +457,12 @@ private fun PersonFilterBar(filter: PersonFilter, onFilter: (PersonFilter) -> Un
 private fun FilterChipPill(label: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(999.dp),
-        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-        contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+        shape = com.example.householdledger.ui.theme.PillShape,
+        color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+        border = if (selected) null else androidx.compose.foundation.BorderStroke(
+            1.dp, MaterialTheme.colorScheme.outlineVariant
+        )
     ) {
         Text(
             label,
@@ -456,9 +480,14 @@ private fun TransactionRow(row: TxnListRow) {
         "transfer" -> Icons.Outlined.SwapHoriz to MoneyTone.Neutral
         else -> Icons.AutoMirrored.Outlined.TrendingDown to MoneyTone.Expense
     }
+    val title = txn.description.ifBlank {
+        row.category?.name ?: txn.type.replaceFirstChar { it.uppercase() }
+    }
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 14.dp)
     ) {
         CategoryLogo(
             name = row.category?.name ?: txn.description,
@@ -468,27 +497,28 @@ private fun TransactionRow(row: TxnListRow) {
         Spacer(Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = row.category?.name ?: txn.description.ifBlank {
-                    txn.type.replaceFirstChar { c -> c.uppercase() }
-                },
+                text = title,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1
             )
             Spacer(Modifier.height(2.dp))
-                Text(
-                    formatTime(txn.date),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            MoneyText(
-                amount = txn.amount,
-                tone = tone,
-                showSign = tone != MoneyTone.Neutral,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+            Text(
+                text = buildString {
+                    if (row.category != null) append(row.category.name).append(" · ")
+                    append(formatTime(txn.date))
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
             )
         }
+        MoneyText(
+            amount = txn.amount,
+            tone = tone,
+            showSign = tone != MoneyTone.Neutral,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+        )
     }
 }
 

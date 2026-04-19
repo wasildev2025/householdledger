@@ -47,6 +47,7 @@ data class ReportsUiState(
     val canGoForward: Boolean = false,
     val income: Double = 0.0,
     val expense: Double = 0.0,
+    val transfers: Double = 0.0,
     val balance: Double = 0.0,
     val prevIncome: Double = 0.0,
     val prevExpense: Double = 0.0,
@@ -103,6 +104,7 @@ class ReportsViewModel @Inject constructor(
 
         val income = cycleTxns.filter { it.type == "income" }.sumOf { it.amount }
         val expense = cycleTxns.filter { it.type == "expense" }.sumOf { it.amount }
+        val transfersSum = cycleTxns.filter { it.type == "transfer" }.sumOf { it.amount }
         val prevIncome = prevTxns.filter { it.type == "income" }.sumOf { it.amount }
         val prevExpense = prevTxns.filter { it.type == "expense" }.sumOf { it.amount }
 
@@ -141,6 +143,7 @@ class ReportsViewModel @Inject constructor(
             canGoForward = cycle.endExclusive.isBefore(LocalDate.now()) || cycle.endExclusive.isEqual(LocalDate.now()),
             income = income,
             expense = expense,
+            transfers = transfersSum,
             balance = income - expense,
             prevIncome = prevIncome,
             prevExpense = prevExpense,

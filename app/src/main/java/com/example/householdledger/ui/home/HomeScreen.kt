@@ -128,7 +128,8 @@ fun HomeScreen(
                         budgetCap = state.budgetCap,
                         projectedExpense = state.projectedExpense,
                         projectedOverrunPercent = state.projectedOverrunPercent,
-                        income = state.income
+                        income = state.income,
+                        transfers = state.transfers
                     )
                 }
             }

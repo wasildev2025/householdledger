@@ -107,14 +107,15 @@ fun ReportsScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = "Daily Spend",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.onBackground
-                                )
-                                Text(
-                                    text = "Peak",
-                                    style = MaterialTheme.typography.labelSmall,
+                                    "DAILY SPEND",
+                                    style = com.example.householdledger.ui.theme.EyebrowCaps,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = "Peak day",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                             MoneyText(
@@ -153,21 +154,33 @@ fun ReportsScreen(
                     AppCard(tonal = true) {
                         EmptyState(
                             icon = Icons.Outlined.BarChart,
-                            title = "No spending this month",
+                            title = "No spending this cycle",
                             description = "When you log expenses, they'll group by category here."
                         )
                     }
                 }
             } else {
-                items(state.breakdown, key = { it.categoryName }) { item ->
-                    AppCard(contentPadding = PaddingValues(14.dp)) {
-                        CategoryBar(
-                            label = item.categoryName,
-                            icon = item.icon,
-                            share = item.share,
-                            amount = item.total,
-                            colorHex = item.colorHex
-                        )
+                item {
+                    AppCard(contentPadding = PaddingValues(0.dp)) {
+                        Column {
+                            state.breakdown.forEachIndexed { index, item ->
+                                Box(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                                    CategoryBar(
+                                        label = item.categoryName,
+                                        icon = item.icon,
+                                        share = item.share,
+                                        amount = item.total,
+                                        colorHex = item.colorHex
+                                    )
+                                }
+                                if (index < state.breakdown.lastIndex) {
+                                    androidx.compose.material3.HorizontalDivider(
+                                        color = MaterialTheme.colorScheme.outlineVariant,
+                                        modifier = Modifier.padding(start = 16.dp, end = 16.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -194,42 +207,56 @@ private fun MonthSelector(
     onPrev: () -> Unit,
     onNext: () -> Unit
 ) {
-    Surface(
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            IconButton(onClick = onPrev) {
-                Icon(
-                    Icons.Default.ChevronLeft,
-                    contentDescription = "Previous month",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
+        ChevronButton(icon = Icons.Default.ChevronLeft, description = "Previous cycle", enabled = true, onClick = onPrev)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                "CYCLE",
+                style = com.example.householdledger.ui.theme.EyebrowCaps,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(2.dp))
             Text(
                 text = label,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onBackground
             )
-            IconButton(
-                onClick = onNext,
-                enabled = canGoForward
-            ) {
-                Icon(
-                    Icons.Default.ChevronRight,
-                    contentDescription = "Next month",
-                    tint = if (canGoForward) MaterialTheme.colorScheme.onSurface
-                    else MaterialTheme.colorScheme.outlineVariant
-                )
-            }
+        }
+        ChevronButton(
+            icon = Icons.Default.ChevronRight,
+            description = "Next cycle",
+            enabled = canGoForward,
+            onClick = onNext
+        )
+    }
+}
+
+@Composable
+private fun ChevronButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    description: String,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        enabled = enabled,
+        modifier = Modifier.size(40.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = icon,
+                contentDescription = description,
+                tint = if (enabled) MaterialTheme.colorScheme.onSurface
+                else MaterialTheme.colorScheme.outlineVariant
+            )
         }
     }
 }
@@ -237,40 +264,48 @@ private fun MonthSelector(
 @Composable
 private fun SummaryHero(state: ReportsUiState) {
     AppCard(contentPadding = PaddingValues(20.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Column {
-                Text(
-                    text = "Net Balance",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+        Column {
+            Text(
+                "NET BALANCE",
+                style = com.example.householdledger.ui.theme.EyebrowCaps,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(8.dp))
+            if (state.isLoading) {
+                Skeleton(height = 40.dp, cornerRadius = 10.dp, modifier = Modifier.fillMaxWidth(0.6f))
+            } else {
+                MoneyText(
+                    amount = state.balance,
+                    style = com.example.householdledger.ui.theme.MoneyHero.copy(
+                        fontSize = androidx.compose.ui.unit.TextUnit.Unspecified
+                    ),
+                    color = if (state.balance < 0) appColors.expense else MaterialTheme.colorScheme.onBackground,
+                    showSign = true
                 )
-                if (state.isLoading) {
-                    Spacer(Modifier.height(6.dp))
-                    Skeleton(height = 34.dp, cornerRadius = 10.dp, modifier = Modifier.fillMaxWidth(0.5f))
-                } else {
-                    MoneyText(
-                        amount = state.balance,
-                        style = com.example.householdledger.ui.theme.MoneyDisplay,
-                        color = if (state.balance < 0) appColors.expense else MaterialTheme.colorScheme.onBackground,
-                        showSign = true
-                    )
-                }
             }
+            Spacer(Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                SubStat(
+                FlowStat(
                     label = "Income",
                     amount = state.income,
                     tone = MoneyTone.Income,
                     modifier = Modifier.weight(1f),
                     loading = state.isLoading
                 )
-                SubStat(
+                FlowStat(
                     label = "Expense",
                     amount = state.expense,
                     tone = MoneyTone.Expense,
+                    modifier = Modifier.weight(1f),
+                    loading = state.isLoading
+                )
+                FlowStat(
+                    label = "Transfers",
+                    amount = state.transfers,
+                    tone = MoneyTone.Neutral,
                     modifier = Modifier.weight(1f),
                     loading = state.isLoading
                 )
@@ -280,46 +315,41 @@ private fun SummaryHero(state: ReportsUiState) {
 }
 
 @Composable
-private fun SubStat(
+private fun FlowStat(
     label: String,
     amount: Double,
     tone: MoneyTone,
     modifier: Modifier = Modifier,
     loading: Boolean = false
 ) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        color = when (tone) {
-            MoneyTone.Income -> appColors.incomeContainer
-            MoneyTone.Expense -> appColors.expenseContainer
-            MoneyTone.Neutral -> MaterialTheme.colorScheme.surfaceVariant
-        }
+    val dotColor = when (tone) {
+        MoneyTone.Income -> appColors.income
+        MoneyTone.Expense -> appColors.expense
+        MoneyTone.Neutral -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
     ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(dotColor, CircleShape)
+        )
+        Spacer(Modifier.width(8.dp))
+        Column {
             Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = when (tone) {
-                    MoneyTone.Income -> appColors.onIncomeContainer
-                    MoneyTone.Expense -> appColors.onExpenseContainer
-                    MoneyTone.Neutral -> MaterialTheme.colorScheme.onSurfaceVariant
-                }
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (loading) {
-                Skeleton(height = 22.dp)
+                Skeleton(height = 18.dp)
             } else {
                 MoneyText(
                     amount = amount,
                     tone = tone,
-                    color = when (tone) {
-                        MoneyTone.Income -> appColors.onIncomeContainer
-                        MoneyTone.Expense -> appColors.onExpenseContainer
-                        MoneyTone.Neutral -> MaterialTheme.colorScheme.onSurface
-                    }
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
                 )
             }
         }
@@ -339,13 +369,15 @@ private fun TrendCard(state: ReportsUiState, onRange: (TrendRange) -> Unit) {
         Column {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TrendRange.values().forEach { r ->
+                    val selected = r == state.trendRange
                     Surface(
                         onClick = { onRange(r) },
-                        shape = RoundedCornerShape(999.dp),
-                        color = if (r == state.trendRange) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = if (r == state.trendRange) MaterialTheme.colorScheme.onPrimary
-                        else MaterialTheme.colorScheme.onSurfaceVariant
+                        shape = com.example.householdledger.ui.theme.PillShape,
+                        color = if (selected) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Transparent,
+                        contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        border = if (selected) null else androidx.compose.foundation.BorderStroke(
+                            1.dp, MaterialTheme.colorScheme.outlineVariant
+                        )
                     ) {
                         Text(
                             when (r) {
@@ -354,7 +386,7 @@ private fun TrendCard(state: ReportsUiState, onRange: (TrendRange) -> Unit) {
                                 TrendRange.OneYear -> "1Y"
                             },
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
                         )
                     }
                 }
@@ -435,18 +467,20 @@ private fun AiInsightCard(state: ReportsUiState) {
         Row(verticalAlignment = Alignment.Top) {
             Box(
                 modifier = Modifier.size(40.dp)
-                    .background(MaterialTheme.colorScheme.tertiaryContainer, CircleShape),
+                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Outlined.AutoAwesome, null,
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp))
             }
             Spacer(Modifier.size(12.dp))
-            Column(modifier = Modifier.fillMaxWidth().padding(0.dp)) {
-                Text("Monthly insight",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.tertiary)
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "CYCLE INSIGHT",
+                    style = com.example.householdledger.ui.theme.EyebrowCaps,
+                    color = MaterialTheme.colorScheme.primary
+                )
                 Spacer(Modifier.size(4.dp))
                 when {
                     state.aiLoading -> Row(verticalAlignment = Alignment.CenterVertically) {
@@ -464,7 +498,7 @@ private fun AiInsightCard(state: ReportsUiState) {
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     else -> Text(
-                        "Tap refresh to generate a summary of your month.",
+                        "Tap refresh to generate a summary of your cycle.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

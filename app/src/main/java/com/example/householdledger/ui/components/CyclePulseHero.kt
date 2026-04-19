@@ -63,6 +63,7 @@ fun CyclePulseHero(
     projectedExpense: Double,
     projectedOverrunPercent: Float, // signed — positive = over, negative = under
     income: Double,
+    transfers: Double = 0.0,
     modifier: Modifier = Modifier
 ) {
     val spendRatio = if (budgetCap > 0) (expenseSoFar / budgetCap).toFloat().coerceIn(0f, 1f) else 0f
@@ -144,8 +145,11 @@ fun CyclePulseHero(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    MiniStat(label = "Spent so far", amount = expenseSoFar, modifier = Modifier.weight(1f))
+                    MiniStat(label = "Spent", amount = expenseSoFar, modifier = Modifier.weight(1f))
                     MiniStat(label = "Income", amount = income, modifier = Modifier.weight(1f))
+                    if (transfers > 0) {
+                        MiniStat(label = "Transfers", amount = transfers, modifier = Modifier.weight(1f))
+                    }
                 }
             }
         }

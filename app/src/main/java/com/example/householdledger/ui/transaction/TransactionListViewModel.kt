@@ -30,6 +30,7 @@ data class TxnListState(
     val categorySlices: List<CategorySliceVm> = emptyList(),
     val monthSpend: Double = 0.0,
     val monthIncome: Double = 0.0,
+    val monthTransfers: Double = 0.0,
     val cycleLabel: String = "",
     val cycleDayIndex: Int = 0,
     val cycleLengthDays: Int = 30,
@@ -108,6 +109,7 @@ class TransactionListViewModel @Inject constructor(
         val cycleTxns = filtered.filter { parseDate(it.date)?.let(cycle::contains) == true }
         val monthSpend = cycleTxns.filter { it.type == "expense" }.sumOf { it.amount }
         val monthIncome = cycleTxns.filter { it.type == "income" }.sumOf { it.amount }
+        val monthTransfers = cycleTxns.filter { it.type == "transfer" }.sumOf { it.amount }
 
         val byCat = cycleTxns.filter { it.type == "expense" }
             .groupBy { it.categoryId }
@@ -136,6 +138,7 @@ class TransactionListViewModel @Inject constructor(
             categorySlices = byCat,
             monthSpend = monthSpend,
             monthIncome = monthIncome,
+            monthTransfers = monthTransfers,
             cycleLabel = cycleLabel,
             cycleDayIndex = dayIndex,
             cycleLengthDays = cycleLengthDays,

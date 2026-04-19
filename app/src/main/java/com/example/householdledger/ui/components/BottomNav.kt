@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
@@ -27,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -131,10 +133,15 @@ private fun NavSlot(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Icon lifts 2dp when selected; label fades out so the icon + dot carry the meaning.
+    // (Unselected slots keep labels so first-time users can still orient.)
     val tint = if (selected) MaterialTheme.colorScheme.primary
     else MaterialTheme.colorScheme.onSurfaceVariant
-    val indicatorColor = if (selected) MaterialTheme.colorScheme.primaryContainer
-    else androidx.compose.ui.graphics.Color.Transparent
+    val lift by androidx.compose.animation.core.animateDpAsState(
+        targetValue = if (selected) (-2).dp else 0.dp,
+        animationSpec = androidx.compose.animation.core.tween(durationMillis = 220),
+        label = "navLift"
+    )
 
     Column(
         modifier = modifier
@@ -143,27 +150,33 @@ private fun NavSlot(
                 indication = null,
                 onClick = onClick
             )
-            .padding(vertical = 6.dp),
+            .padding(vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Box(
+        Icon(
+            imageVector = if (selected) item.filledIcon else item.outlinedIcon,
+            contentDescription = item.label,
+            tint = tint,
             modifier = Modifier
-                .background(indicatorColor, RoundedCornerShape(999.dp))
-                .padding(horizontal = 14.dp, vertical = 4.dp)
-        ) {
-            Icon(
-                imageVector = if (selected) item.filledIcon else item.outlinedIcon,
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(22.dp)
+                .size(24.dp)
+                .absoluteOffset(y = lift)
+        )
+        Spacer(Modifier.height(4.dp))
+        // Selected: saffron underline dot (no label).
+        // Unselected: compact label.
+        if (selected) {
+            Box(
+                modifier = Modifier
+                    .size(width = 14.dp, height = 3.dp)
+                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(999.dp))
+            )
+        } else {
+            Text(
+                text = item.label,
+                style = MaterialTheme.typography.labelSmall,
+                color = tint
             )
         }
-        Spacer(Modifier.height(2.dp))
-        Text(
-            text = item.label,
-            style = MaterialTheme.typography.labelSmall,
-            color = tint
-        )
     }
 }
