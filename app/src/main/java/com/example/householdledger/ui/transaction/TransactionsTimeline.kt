@@ -1,6 +1,7 @@
 package com.example.householdledger.ui.transaction
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,7 +43,10 @@ import com.example.householdledger.util.DateUtil
  *   ●  Fuel  ·  Transport · 1:45 PM   −₨1,500
  *   ─────────────────────────────────────────
  */
-fun LazyListScope.transactionsTimeline(sections: List<DaySection>) {
+fun LazyListScope.transactionsTimeline(
+    sections: List<DaySection>,
+    onRowClick: (com.example.householdledger.data.model.Transaction) -> Unit = {}
+) {
     sections.forEachIndexed { sectionIndex, section ->
         item(key = "tl-band-${section.label}") {
             TimelineDayBand(section = section, first = sectionIndex == 0)
@@ -53,7 +57,8 @@ fun LazyListScope.transactionsTimeline(sections: List<DaySection>) {
         ) { index, row ->
             TimelineEntry(
                 row = row,
-                isLastInDay = index == section.rows.lastIndex
+                isLastInDay = index == section.rows.lastIndex,
+                onClick = { onRowClick(row.transaction) }
             )
         }
     }
@@ -116,7 +121,7 @@ private fun TimelineDayBand(section: DaySection, first: Boolean) {
 }
 
 @Composable
-private fun TimelineEntry(row: TxnListRow, isLastInDay: Boolean) {
+private fun TimelineEntry(row: TxnListRow, isLastInDay: Boolean, onClick: () -> Unit) {
     val txn = row.transaction
     val tone = when (txn.type) {
         "income" -> MoneyTone.Income
@@ -132,7 +137,8 @@ private fun TimelineEntry(row: TxnListRow, isLastInDay: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min),
+            .height(IntrinsicSize.Min)
+            .clickable(onClick = onClick),
         verticalAlignment = Alignment.Top
     ) {
         // Spine column: vertical line + dot centered on the row.

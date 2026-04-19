@@ -23,7 +23,9 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -49,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.householdledger.data.model.Category
+import com.example.householdledger.data.model.Transaction
 import com.example.householdledger.ui.components.MoneyText
 import com.example.householdledger.ui.components.MoneyTone
 import com.example.householdledger.ui.theme.MoneyDisplay
@@ -62,26 +65,92 @@ private enum class TxnType(val key: String, val label: String, val icon: ImageVe
     Transfer("transfer", "Transfer", Icons.Outlined.SwapHoriz)
 }
 
+/** Names that mark a category as "income-side" in our heuristic filter. */
+private val INCOME_KEYWORDS = listOf(
+    "salary", "income", "bonus", "gift", "refund", "dividend",
+    "interest", "rental", "tankhwa"
+)
+
+private fun Category.looksLikeIncome(): Boolean =
+    INCOME_KEYWORDS.any { k -> name.contains(k, ignoreCase = true) }
+
 /**
- * Body of the Add Transaction modal bottom sheet. The sheet chrome (scrim, drag
- * handle, rounded top) is provided by the ModalBottomSheet in MainActivity — this
- * composable only renders the content.
+ * Recipient of a transfer. Either a servant or a member; persisted into
+ * the transaction's [Transaction.servantId] / [Transaction.memberId] slot.
+ */
+private sealed class Recipient {
+    abstract val id: String
+    abstract val name: String
+    data class ServantR(override val id: String, override val name: String) : Recipient()
+    data class MemberR(override val id: String, override val name: String) : Recipient()
+}
+
+/**
+ * Body of the Add/Edit Transaction modal bottom sheet. The sheet chrome (scrim,
+ * drag handle, rounded top) is provided by the ModalBottomSheet in MainActivity.
+ *
+ * Pass [editing] to operate on an existing transaction — the form prefills from
+ * it, save becomes an update, and a Delete button appears.
  */
 @Composable
 fun AddTransactionSheet(
     onClose: () -> Unit,
+    editing: Transaction? = null,
     viewModel: AddTransactionViewModel = hiltViewModel()
 ) {
-    var amount by remember { mutableStateOf("0") }
-    var type by remember { mutableStateOf(TxnType.Expense) }
-    var selectedCategory by remember { mutableStateOf<Category?>(null) }
+    // Prefill from `editing` if we're in edit mode.
+    var amount by remember(editing?.id) {
+        mutableStateOf(
+            editing?.amount?.let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() }
+                ?: "0"
+        )
+    }
+    var type by remember(editing?.id) {
+        mutableStateOf(
+            when (editing?.type) {
+                "income" -> TxnType.Income
+                "transfer" -> TxnType.Transfer
+                else -> TxnType.Expense
+            }
+        )
+    }
+    var selectedCategoryId by remember(editing?.id) { mutableStateOf(editing?.categoryId) }
     var categoryMenuOpen by remember { mutableStateOf(false) }
+    var recipientMenuOpen by remember { mutableStateOf(false) }
+    var recipient by remember(editing?.id) {
+        mutableStateOf<Recipient?>(null) // resolved once data arrives
+    }
 
     val categories by viewModel.categories.collectAsState()
+    val servants by viewModel.servants.collectAsState()
+    val members by viewModel.members.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
 
+    // Resolve recipient once servants/members load in edit mode.
+    androidx.compose.runtime.LaunchedEffect(editing?.id, servants, members) {
+        if (editing == null) return@LaunchedEffect
+        recipient = editing.servantId?.let { sid ->
+            servants.firstOrNull { it.id == sid }?.let { Recipient.ServantR(it.id, it.name) }
+        } ?: editing.memberId?.let { mid ->
+            members.firstOrNull { it.id == mid }?.let { Recipient.MemberR(it.id, it.name) }
+        }
+    }
+
+    val selectedCategory = remember(selectedCategoryId, categories) {
+        selectedCategoryId?.let { id -> categories.firstOrNull { it.id == id } }
+    }
+
+    val visibleCategories = remember(categories, type) {
+        when (type) {
+            TxnType.Income -> categories.filter { it.looksLikeIncome() }
+            TxnType.Expense -> categories.filter { !it.looksLikeIncome() }
+            TxnType.Transfer -> emptyList()
+        }
+    }
+
     val amountDouble = amount.toDoubleOrNull() ?: 0.0
-    val canSubmit = amountDouble > 0 && !isSaving
+    val transferNeedsRecipient = type == TxnType.Transfer && recipient == null
+    val canSubmit = amountDouble > 0 && !isSaving && !transferNeedsRecipient
     val todayLabel = remember { LocalDate.now().format(DateTimeFormatter.ofPattern("d MMM yyyy")) }
 
     Column(
@@ -93,12 +162,14 @@ fun AddTransactionSheet(
         Spacer(Modifier.height(4.dp))
         SegmentedPillTabs(
             selected = type,
-            onSelect = { type = it }
+            onSelect = {
+                type = it
+                // Reset category on type change if it no longer fits.
+                if (it == TxnType.Income && selectedCategory?.looksLikeIncome() != true) selectedCategoryId = null
+                if (it == TxnType.Expense && selectedCategory?.looksLikeIncome() == true) selectedCategoryId = null
+                if (it == TxnType.Transfer) selectedCategoryId = null
+            }
         )
-
-        Spacer(Modifier.height(16.dp))
-
-        BudgetAlertBanner()
 
         Spacer(Modifier.height(24.dp))
 
@@ -129,24 +200,97 @@ fun AddTransactionSheet(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Box(modifier = Modifier.weight(1f)) {
-                ChipButton(
-                    icon = Icons.Outlined.Category,
-                    label = selectedCategory?.name ?: "Category",
-                    onClick = { categoryMenuOpen = true }
-                )
-                DropdownMenu(
-                    expanded = categoryMenuOpen,
-                    onDismissRequest = { categoryMenuOpen = false }
-                ) {
-                    categories.forEach { category ->
-                        DropdownMenuItem(
-                            text = { Text(category.name) },
-                            onClick = {
-                                selectedCategory = category
-                                categoryMenuOpen = false
+            if (type != TxnType.Transfer) {
+                Box(modifier = Modifier.weight(1f)) {
+                    ChipButton(
+                        icon = Icons.Outlined.Category,
+                        label = selectedCategory?.name
+                            ?: (if (type == TxnType.Income) "Income category" else "Category"),
+                        onClick = { categoryMenuOpen = true }
+                    )
+                    DropdownMenu(
+                        expanded = categoryMenuOpen,
+                        onDismissRequest = { categoryMenuOpen = false }
+                    ) {
+                        if (visibleCategories.isEmpty()) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        if (type == TxnType.Income) "No income categories yet — create one in Categories"
+                                        else "No matching categories"
+                                    )
+                                },
+                                onClick = { categoryMenuOpen = false }
+                            )
+                        } else {
+                            visibleCategories.forEach { category ->
+                                DropdownMenuItem(
+                                    text = { Text(category.name) },
+                                    onClick = {
+                                        selectedCategoryId = category.id
+                                        categoryMenuOpen = false
+                                    }
+                                )
                             }
-                        )
+                        }
+                    }
+                }
+            } else {
+                // Transfer: required recipient picker replaces the category slot.
+                Box(modifier = Modifier.weight(1f)) {
+                    ChipButton(
+                        icon = Icons.Outlined.Person,
+                        label = recipient?.name ?: "Transfer to…",
+                        onClick = { recipientMenuOpen = true },
+                        highlight = transferNeedsRecipient
+                    )
+                    DropdownMenu(
+                        expanded = recipientMenuOpen,
+                        onDismissRequest = { recipientMenuOpen = false }
+                    ) {
+                        if (servants.isEmpty() && members.isEmpty()) {
+                            DropdownMenuItem(
+                                text = { Text("Add a servant or member first") },
+                                onClick = { recipientMenuOpen = false }
+                            )
+                        } else {
+                            if (servants.isNotEmpty()) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text("Staff", style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    },
+                                    onClick = {}, enabled = false
+                                )
+                                servants.forEach { s ->
+                                    DropdownMenuItem(
+                                        text = { Text(s.name) },
+                                        onClick = {
+                                            recipient = Recipient.ServantR(s.id, s.name)
+                                            recipientMenuOpen = false
+                                        }
+                                    )
+                                }
+                            }
+                            if (members.isNotEmpty()) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text("Family", style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    },
+                                    onClick = {}, enabled = false
+                                )
+                                members.forEach { m ->
+                                    DropdownMenuItem(
+                                        text = { Text(m.name) },
+                                        onClick = {
+                                            recipient = Recipient.MemberR(m.id, m.name)
+                                            recipientMenuOpen = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -178,13 +322,30 @@ fun AddTransactionSheet(
         Button(
             onClick = {
                 val now = LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME)
-                viewModel.addTransaction(
-                    amount = amountDouble,
-                    description = selectedCategory?.name.orEmpty(),
-                    type = type.key,
-                    categoryId = selectedCategory?.id,
-                    date = now
-                )
+                val sid = (recipient as? Recipient.ServantR)?.id
+                val mid = (recipient as? Recipient.MemberR)?.id
+                if (editing != null) {
+                    viewModel.updateTransaction(
+                        original = editing,
+                        amount = amountDouble,
+                        description = selectedCategory?.name ?: editing.description,
+                        type = type.key,
+                        categoryId = selectedCategory?.id,
+                        date = now,
+                        servantId = sid ?: editing.servantId,
+                        memberId = mid ?: editing.memberId
+                    )
+                } else {
+                    viewModel.addTransaction(
+                        amount = amountDouble,
+                        description = selectedCategory?.name.orEmpty(),
+                        type = type.key,
+                        categoryId = selectedCategory?.id,
+                        date = now,
+                        servantId = sid,
+                        memberId = mid
+                    )
+                }
                 onClose()
             },
             enabled = canSubmit,
@@ -204,7 +365,34 @@ fun AddTransactionSheet(
                     strokeWidth = 2.dp
                 )
             } else {
-                Text("Add Transaction", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    text = if (editing != null) "Save changes" else "Add transaction",
+                    style = MaterialTheme.typography.titleSmall
+                )
+            }
+        }
+
+        if (editing != null) {
+            Spacer(Modifier.height(10.dp))
+            androidx.compose.material3.OutlinedButton(
+                onClick = {
+                    viewModel.deleteTransaction(editing)
+                    onClose()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(999.dp)
+            ) {
+                Icon(
+                    Icons.Outlined.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(end = 8.dp).size(18.dp)
+                )
+                Text(
+                    "Delete transaction",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.titleSmall
+                )
             }
         }
     }
@@ -288,12 +476,14 @@ private fun ChipButton(
     icon: ImageVector,
     label: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    highlight: Boolean = false
 ) {
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = if (highlight) MaterialTheme.colorScheme.errorContainer
+        else MaterialTheme.colorScheme.surfaceVariant,
         onClick = onClick
     ) {
         Row(

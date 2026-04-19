@@ -1,6 +1,7 @@
 package com.example.householdledger.ui.transaction
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -68,6 +69,7 @@ private enum class ViewMode { List, Timeline }
 fun TransactionListScreen(
     onBack: (() -> Unit)? = null,
     onAdd: () -> Unit,
+    onEditTransaction: (com.example.householdledger.data.model.Transaction) -> Unit = {},
     viewModel: TransactionListViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -159,10 +161,12 @@ fun TransactionListScreen(
                         ViewMode.List -> {
                             state.sections.forEach { section ->
                                 item(key = "header-${section.label}") { DayHeader(section) }
-                                item(key = "group-${section.label}") { DayGroupCard(section.rows) }
+                                item(key = "group-${section.label}") {
+                                    DayGroupCard(section.rows, onRowClick = onEditTransaction)
+                                }
                             }
                         }
-                        ViewMode.Timeline -> transactionsTimeline(state.sections)
+                        ViewMode.Timeline -> transactionsTimeline(state.sections, onEditTransaction)
                     }
                     if (state.canLoadMore) {
                         item {
@@ -394,11 +398,14 @@ private fun DayHeader(section: DaySection) {
 }
 
 @Composable
-private fun DayGroupCard(rows: List<TxnListRow>) {
+private fun DayGroupCard(
+    rows: List<TxnListRow>,
+    onRowClick: (com.example.householdledger.data.model.Transaction) -> Unit
+) {
     AppCard(contentPadding = PaddingValues(0.dp)) {
         Column {
             rows.forEachIndexed { index, row ->
-                TransactionRow(row)
+                TransactionRow(row, onClick = { onRowClick(row.transaction) })
                 if (index < rows.lastIndex) {
                     androidx.compose.material3.HorizontalDivider(
                         color = MaterialTheme.colorScheme.outlineVariant,
@@ -500,7 +507,7 @@ private fun FilterChipPill(label: String, selected: Boolean, onClick: () -> Unit
 }
 
 @Composable
-private fun TransactionRow(row: TxnListRow) {
+private fun TransactionRow(row: TxnListRow, onClick: () -> Unit) {
     val txn = row.transaction
     val (icon, tone) = when (txn.type) {
         "income" -> Icons.AutoMirrored.Outlined.TrendingUp to MoneyTone.Income
@@ -514,6 +521,7 @@ private fun TransactionRow(row: TxnListRow) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp)
     ) {
         CategoryLogo(

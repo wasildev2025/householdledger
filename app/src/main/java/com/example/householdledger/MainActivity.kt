@@ -124,6 +124,7 @@ private fun AppContent(viewModel: MainViewModel) {
     val showBottomBar = currentRoute in navItems.map { it.route }
 
     var showAddSheet by remember { mutableStateOf(false) }
+    var editingTxn by remember { mutableStateOf<com.example.householdledger.data.model.Transaction?>(null) }
     var showVoiceSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val voiceSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -285,7 +286,11 @@ private fun AppContent(viewModel: MainViewModel) {
             composable(Screen.Transactions.route) {
                 TransactionListScreen(
                     onBack = null,
-                    onAdd = { showAddSheet = true }
+                    onAdd = { showAddSheet = true },
+                    onEditTransaction = { tx ->
+                        editingTxn = tx
+                        showAddSheet = true
+                    }
                 )
             }
             composable(Screen.SetPin.route) {
@@ -295,15 +300,20 @@ private fun AppContent(viewModel: MainViewModel) {
 
         if (showAddSheet) {
             ModalBottomSheet(
-                onDismissRequest = { showAddSheet = false },
+                onDismissRequest = {
+                    showAddSheet = false
+                    editingTxn = null
+                },
                 sheetState = sheetState,
                 containerColor = MaterialTheme.colorScheme.surface,
                 dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle() }
             ) {
                 AddTransactionSheet(
+                    editing = editingTxn,
                     onClose = {
                         sheetScope.launch { sheetState.hide() }.invokeOnCompletion {
                             showAddSheet = false
+                            editingTxn = null
                         }
                     }
                 )

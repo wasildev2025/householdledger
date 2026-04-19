@@ -86,11 +86,22 @@ class TransactionListViewModel @Inject constructor(
         preferenceManager.cycleStartDay
     ) { txns, cats, user, f, pf, cycleStartDay ->
         val categoryById = cats.associateBy { it.id }
+
+        // Role-scoped pool: a servant only sees their own rows; a member only
+        // theirs. Admin sees everything. Applied BEFORE the user's filters so
+        // the chips (All / Expense / Income / …) operate on what they're
+        // actually allowed to see.
+        val roleScoped = when (user?.role) {
+            "servant" -> txns.filter { it.servantId == user.servantId }
+            "member" -> txns.filter { it.memberId == user.memberId }
+            else -> txns
+        }
+
         val filteredType = when (f) {
-            TxnFilter.All -> txns
-            TxnFilter.Expense -> txns.filter { it.type == "expense" }
-            TxnFilter.Income -> txns.filter { it.type == "income" }
-            TxnFilter.Transfer -> txns.filter { it.type == "transfer" }
+            TxnFilter.All -> roleScoped
+            TxnFilter.Expense -> roleScoped.filter { it.type == "expense" }
+            TxnFilter.Income -> roleScoped.filter { it.type == "income" }
+            TxnFilter.Transfer -> roleScoped.filter { it.type == "transfer" }
         }
         val filtered = when (pf) {
             PersonFilter.All -> filteredType

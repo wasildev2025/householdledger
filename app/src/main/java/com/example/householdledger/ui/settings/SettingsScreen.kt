@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material3.AlertDialog
@@ -75,6 +76,8 @@ fun SettingsScreen(
     var darkDialog by remember { mutableStateOf(false) }
     var currencyDialog by remember { mutableStateOf(false) }
     var cycleDialog by remember { mutableStateOf(false) }
+    var householdDialog by remember { mutableStateOf(false) }
+    val household by viewModel.household.collectAsState()
 
     LaunchedEffect(exportMessage) {
         if (exportMessage != null) {
@@ -181,6 +184,20 @@ fun SettingsScreen(
                             title = "Cycle start day",
                             subtitle = "Transactions roll over on day ${state.cycleStartDay} of each month",
                             onClick = { cycleDialog = true }
+                        )
+                    }
+                }
+            }
+
+            if (currentUser?.role == "admin") {
+                item { SectionHeader("Household") }
+                item {
+                    AppCard(contentPadding = PaddingValues(4.dp)) {
+                        RowItem(
+                            icon = Icons.Outlined.Home,
+                            title = "Household name",
+                            subtitle = household?.name ?: "Not set",
+                            onClick = { householdDialog = true }
                         )
                     }
                 }
@@ -306,6 +323,35 @@ fun SettingsScreen(
         initial = state.cycleStartDay,
         onSave = { viewModel.setCycleStartDay(it); cycleDialog = false },
         onDismiss = { cycleDialog = false }
+    )
+    if (householdDialog) HouseholdNameDialog(
+        initial = household?.name.orEmpty(),
+        onSave = { viewModel.renameHousehold(it); householdDialog = false },
+        onDismiss = { householdDialog = false }
+    )
+}
+
+@Composable
+private fun HouseholdNameDialog(initial: String, onSave: (String) -> Unit, onDismiss: () -> Unit) {
+    var text by remember { mutableStateOf(initial) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Rename household") },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it.take(40) },
+                label = { Text("Household name") },
+                singleLine = true
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onSave(text) },
+                enabled = text.isNotBlank() && text != initial
+            ) { Text("Save") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }
 

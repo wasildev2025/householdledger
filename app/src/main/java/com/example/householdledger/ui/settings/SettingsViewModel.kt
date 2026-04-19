@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.householdledger.data.local.PreferenceManager
 import com.example.householdledger.data.model.Transaction
 import com.example.householdledger.data.repository.AuthRepository
+import com.example.householdledger.data.repository.HouseholdRepository
 import com.example.householdledger.data.repository.TransactionRepository
 import com.example.householdledger.util.DataExporter
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,8 +35,17 @@ class SettingsViewModel @Inject constructor(
     private val prefs: PreferenceManager,
     private val transactionRepository: TransactionRepository,
     private val authRepository: AuthRepository,
+    private val householdRepository: HouseholdRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
+
+    val household: StateFlow<com.example.householdledger.data.model.Household?> =
+        householdRepository.household.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    fun renameHousehold(name: String) {
+        if (name.isBlank()) return
+        viewModelScope.launch { householdRepository.updateHouseholdName(name.trim()) }
+    }
 
     val state: StateFlow<SettingsState> = combine(
         prefs.darkMode,

@@ -122,6 +122,7 @@ fun PeopleScreen(
                                     phone = servant.phoneNumber,
                                     salary = servant.salary ?: 0.0,
                                     balance = servant.balance,
+                                    inviteCode = servant.inviteCode,
                                     onDelete = { viewModel.deleteServant(servant) }
                                 )
                             }
@@ -147,6 +148,7 @@ fun PeopleScreen(
                                 FamilyRow(
                                     name = member.name,
                                     role = member.role.ifBlank { "Member" },
+                                    inviteCode = member.inviteCode,
                                     onDelete = { viewModel.deleteMember(member) }
                                 )
                             }
@@ -223,6 +225,7 @@ private fun StaffRow(
     phone: String?,
     salary: Double,
     balance: Double,
+    inviteCode: String?,
     onDelete: () -> Unit
 ) {
     AppCard(
@@ -291,6 +294,10 @@ private fun StaffRow(
                         }
                     }
                 }
+                if (!inviteCode.isNullOrBlank()) {
+                    Spacer(Modifier.height(6.dp))
+                    InviteCodePill(code = inviteCode)
+                }
             }
             IconButton(onClick = onDelete) {
                 Icon(
@@ -307,6 +314,7 @@ private fun StaffRow(
 private fun FamilyRow(
     name: String,
     role: String,
+    inviteCode: String?,
     onDelete: () -> Unit
 ) {
     AppCard(
@@ -325,6 +333,10 @@ private fun FamilyRow(
                 )
                 Spacer(Modifier.height(4.dp))
                 RoleChip(role)
+                if (!inviteCode.isNullOrBlank()) {
+                    Spacer(Modifier.height(6.dp))
+                    InviteCodePill(code = inviteCode)
+                }
             }
             IconButton(onClick = onDelete) {
                 Icon(
@@ -333,6 +345,39 @@ private fun FamilyRow(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun InviteCodePill(code: String) {
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        onClick = {
+            clipboard.setText(androidx.compose.ui.text.AnnotatedString(code))
+        }
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+        ) {
+            Text(
+                "INVITE",
+                style = com.example.householdledger.ui.theme.EyebrowCaps,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                code,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    letterSpacing = androidx.compose.ui.unit.TextUnit(1.2f, androidx.compose.ui.unit.TextUnitType.Sp)
+                ),
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
         }
     }
 }

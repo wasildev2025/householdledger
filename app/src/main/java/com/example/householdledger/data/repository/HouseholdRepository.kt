@@ -18,6 +18,19 @@ class HouseholdRepository @Inject constructor(
     private val _household = MutableStateFlow<Household?>(null)
     val household: StateFlow<Household?> = _household
 
+    suspend fun updateHouseholdName(name: String) {
+        val profile = authRepository.currentUser.value ?: return
+        val householdId = profile.householdId ?: return
+        try {
+            postgrest.from("households").update(mapOf("name" to name)) {
+                filter { eq("id", householdId) }
+            }
+            loadHousehold()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     suspend fun updateDairyPrices(milkPrice: Double, yogurtPrice: Double) {
         val profile = authRepository.currentUser.value ?: return
         val householdId = profile.householdId ?: return
