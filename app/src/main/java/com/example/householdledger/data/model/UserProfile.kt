@@ -10,5 +10,5 @@ data class UserProfile(
     @SerialName("servant_id") val servantId: String? = null,
     @SerialName("member_id") val memberId: String? = null,
     @SerialName("household_id") val householdId: String? = null,
-    val name: String
+    val name: String? = null
 )

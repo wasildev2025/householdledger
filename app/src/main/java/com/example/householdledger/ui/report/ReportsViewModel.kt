@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.householdledger.data.model.Category
 import com.example.householdledger.data.model.Transaction
+import com.example.householdledger.data.local.PreferenceManager
 import com.example.householdledger.data.repository.AuthRepository
 import com.example.householdledger.data.repository.CategoryRepository
 import com.example.householdledger.data.repository.TransactionRepository
+import com.example.householdledger.util.Cycle
+import com.example.householdledger.util.DateUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.functions.functions
@@ -19,10 +22,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
 import javax.inject.Inject
 import kotlin.math.max
 
@@ -41,6 +42,8 @@ data class TrendBucket(val label: String, val income: Double, val expense: Doubl
 
 data class ReportsUiState(
     val month: YearMonth = YearMonth.now(),
+    val cycleStart: LocalDate = LocalDate.now().withDayOfMonth(1),
+    val cycleEndInclusive: LocalDate = LocalDate.now(),
     val canGoForward: Boolean = false,
     val income: Double = 0.0,
     val expense: Double = 0.0,
@@ -68,46 +71,51 @@ class ReportsViewModel @Inject constructor(
     transactionRepository: TransactionRepository,
     categoryRepository: CategoryRepository,
     private val authRepository: AuthRepository,
-    private val supabaseClient: SupabaseClient
+    private val supabaseClient: SupabaseClient,
+    private val preferenceManager: PreferenceManager
 ) : ViewModel() {
 
-    private val selectedMonth = MutableStateFlow(YearMonth.now())
+    // `selectedCycleAnchor` is any LocalDate inside the cycle the user is currently viewing.
+    // Cycle boundaries are computed from this anchor + the user's cycleStartDay preference.
+    private val selectedCycleAnchor = MutableStateFlow(LocalDate.now())
     private val trendRange = MutableStateFlow(TrendRange.SixMonths)
     private val aiInsight = MutableStateFlow<String?>(null)
     private val aiLoading = MutableStateFlow(false)
 
-    val uiState: StateFlow<ReportsUiState> = combineFive(
+    private val cachedCycleStartDay: StateFlow<Int> = preferenceManager.cycleStartDay
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 1)
+
+    val uiState: StateFlow<ReportsUiState> = combineSix(
         transactionRepository.transactions,
         categoryRepository.categories,
-        selectedMonth,
+        selectedCycleAnchor,
         trendRange,
-        aiInsight
-    ) { transactions, categories, month, range, insight ->
+        aiInsight,
+        preferenceManager.cycleStartDay
+    ) { transactions, categories, anchor, range, insight, cycleStartDay ->
         val categoryById = categories.associateBy { it.id }
-        val daysInMonth = month.lengthOfMonth()
+        val cycle = Cycle.current(anchor, cycleStartDay)
+        val prevCycle = Cycle.previous(anchor, cycleStartDay)
+        val lengthDays = java.time.temporal.ChronoUnit.DAYS.between(cycle.start, cycle.endExclusive).toInt()
 
-        val monthTxns = transactions.filter { txn ->
-            parseDate(txn.date)?.let { YearMonth.of(it.year, it.monthValue) == month } ?: false
-        }
-        val prevMonthTxns = transactions.filter { txn ->
-            parseDate(txn.date)?.let { YearMonth.of(it.year, it.monthValue) == month.minusMonths(1) } ?: false
-        }
+        val cycleTxns = transactions.filter { parseDate(it.date)?.let(cycle::contains) == true }
+        val prevTxns = transactions.filter { parseDate(it.date)?.let(prevCycle::contains) == true }
 
-        val income = monthTxns.filter { it.type == "income" }.sumOf { it.amount }
-        val expense = monthTxns.filter { it.type == "expense" }.sumOf { it.amount }
-        val prevIncome = prevMonthTxns.filter { it.type == "income" }.sumOf { it.amount }
-        val prevExpense = prevMonthTxns.filter { it.type == "expense" }.sumOf { it.amount }
+        val income = cycleTxns.filter { it.type == "income" }.sumOf { it.amount }
+        val expense = cycleTxns.filter { it.type == "expense" }.sumOf { it.amount }
+        val prevIncome = prevTxns.filter { it.type == "income" }.sumOf { it.amount }
+        val prevExpense = prevTxns.filter { it.type == "expense" }.sumOf { it.amount }
 
-        val daily = DoubleArray(daysInMonth)
-        monthTxns.filter { it.type == "expense" }.forEach { txn ->
+        val daily = DoubleArray(lengthDays)
+        cycleTxns.filter { it.type == "expense" }.forEach { txn ->
             parseDate(txn.date)?.let { date ->
-                val idx = date.dayOfMonth - 1
-                if (idx in 0 until daysInMonth) daily[idx] += txn.amount
+                val idx = java.time.temporal.ChronoUnit.DAYS.between(cycle.start, date).toInt()
+                if (idx in 0 until lengthDays) daily[idx] += txn.amount
             }
         }
 
         val totalExpense = max(expense, 1.0)
-        val breakdown = monthTxns
+        val breakdown = cycleTxns
             .filter { it.type == "expense" }
             .groupBy { it.categoryId }
             .map { (catId, txns) ->
@@ -124,11 +132,13 @@ class ReportsViewModel @Inject constructor(
             }
             .sortedByDescending { it.total }
 
-        val trend = buildTrend(transactions, range)
+        val trend = buildTrend(transactions, range, cycleStartDay)
 
         ReportsUiState(
-            month = month,
-            canGoForward = month < YearMonth.now(),
+            month = YearMonth.from(cycle.start),
+            cycleStart = cycle.start,
+            cycleEndInclusive = cycle.endExclusive.minusDays(1),
+            canGoForward = cycle.endExclusive.isBefore(LocalDate.now()) || cycle.endExclusive.isEqual(LocalDate.now()),
             income = income,
             expense = expense,
             balance = income - expense,
@@ -137,7 +147,7 @@ class ReportsViewModel @Inject constructor(
             dailyExpense = daily.toList(),
             peakDailyExpense = daily.maxOrNull() ?: 0.0,
             breakdown = breakdown,
-            transactionCount = monthTxns.size,
+            transactionCount = cycleTxns.size,
             trend = trend,
             trendRange = range,
             aiInsight = insight,
@@ -147,8 +157,14 @@ class ReportsViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ReportsUiState())
 
     fun shiftMonth(delta: Int) {
-        val next = selectedMonth.value.plusMonths(delta.toLong())
-        if (next <= YearMonth.now()) selectedMonth.value = next
+        val startDay = cachedCycleStartDay.value
+        val cur = Cycle.current(selectedCycleAnchor.value, startDay)
+        val target = cur.start.plusMonths(delta.toLong())
+        val today = LocalDate.now()
+        val targetCycle = Cycle.current(target, startDay)
+        if (!targetCycle.start.isAfter(today)) {
+            selectedCycleAnchor.value = target
+        }
     }
 
     fun setTrendRange(range: TrendRange) { trendRange.value = range }
@@ -173,40 +189,50 @@ class ReportsViewModel @Inject constructor(
         }
     }
 
-    fun formatMonthLabel(month: YearMonth): String =
-        month.format(DateTimeFormatter.ofPattern("MMMM yyyy"))
+    fun formatCycleLabel(start: LocalDate, endInclusive: LocalDate): String {
+        val fmt = DateTimeFormatter.ofPattern("d MMM")
+        return "${start.format(fmt)} – ${endInclusive.format(fmt)}"
+    }
 
     private fun buildTrend(
         transactions: List<Transaction>,
-        range: TrendRange
+        range: TrendRange,
+        cycleStartDay: Int
     ): List<TrendBucket> {
-        val now = YearMonth.now()
+        val today = LocalDate.now()
         val buckets = mutableListOf<TrendBucket>()
         val count = range.months.toInt()
         for (i in count - 1 downTo 0) {
-            val ym = now.minusMonths(i.toLong())
-            val txns = transactions.filter { parseDate(it.date)?.let { d -> YearMonth.of(d.year, d.monthValue) == ym } ?: false }
+            val anchor = today.minusMonths(i.toLong())
+            val cycle = Cycle.current(anchor, cycleStartDay)
+            val txns = transactions.filter { parseDate(it.date)?.let(cycle::contains) == true }
             val inc = txns.filter { it.type == "income" }.sumOf { it.amount }
             val exp = txns.filter { it.type == "expense" }.sumOf { it.amount }
-            val label = ym.format(DateTimeFormatter.ofPattern(if (count > 6) "MMM" else "MMM"))
+            val label = YearMonth.from(cycle.start).format(DateTimeFormatter.ofPattern("MMM"))
             buckets += TrendBucket(label, inc, exp)
         }
         return buckets
     }
 
-    private fun parseDate(raw: String): LocalDate? = try {
-        LocalDateTime.parse(raw).toLocalDate()
-    } catch (_: DateTimeParseException) {
-        try { LocalDate.parse(raw) } catch (_: DateTimeParseException) { null }
-    }
+    private fun parseDate(raw: String): LocalDate? = DateUtil.parseDate(raw)
 }
 
 @Suppress("UNCHECKED_CAST")
-private fun <T1, T2, T3, T4, T5, R> combineFive(
+private fun <T1, T2, T3, T4, T5, T6, R> combineSix(
     f1: kotlinx.coroutines.flow.Flow<T1>,
     f2: kotlinx.coroutines.flow.Flow<T2>,
     f3: kotlinx.coroutines.flow.Flow<T3>,
     f4: kotlinx.coroutines.flow.Flow<T4>,
     f5: kotlinx.coroutines.flow.Flow<T5>,
-    transform: suspend (T1, T2, T3, T4, T5) -> R
-) = combine(f1, f2, f3, f4, f5, transform)
+    f6: kotlinx.coroutines.flow.Flow<T6>,
+    transform: suspend (T1, T2, T3, T4, T5, T6) -> R
+) = combine(f1, f2, f3, f4, f5, f6) { values ->
+    transform(
+        values[0] as T1,
+        values[1] as T2,
+        values[2] as T3,
+        values[3] as T4,
+        values[4] as T5,
+        values[5] as T6
+    )
+}

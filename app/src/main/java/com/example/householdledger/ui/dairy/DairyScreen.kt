@@ -15,6 +15,21 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.householdledger.ui.components.AppCard
 import com.example.householdledger.ui.components.MoneyText
 import com.example.householdledger.ui.components.MoneyTone
+import com.example.householdledger.util.DateUtil
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
+private val dairyDateFormat = DateTimeFormatter.ofPattern("EEE, d MMM yyyy")
+
+private fun formatLogDate(raw: String): String {
+    val d = DateUtil.parseDate(raw) ?: return raw
+    val today = LocalDate.now()
+    return when (d) {
+        today -> "Today"
+        today.minusDays(1) -> "Yesterday"
+        else -> d.format(dairyDateFormat)
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,7 +131,7 @@ fun DairyScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column {
-                                Text(log.date, style = MaterialTheme.typography.labelMedium)
+                                Text(formatLogDate(log.date), style = MaterialTheme.typography.labelMedium)
                                 Text("Milk: ${log.milkQty}L, Yogurt: ${log.yogurtQty}Kg", style = MaterialTheme.typography.bodySmall)
                             }
                             MoneyText(amount = log.totalBill, tone = MoneyTone.Expense)

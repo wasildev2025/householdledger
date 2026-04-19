@@ -1,5 +1,6 @@
 package com.example.householdledger.data.repository
 
+import android.util.Log
 import com.example.householdledger.data.local.RecurringTemplateDao
 import com.example.householdledger.data.model.RecurringTemplate
 import com.example.householdledger.data.model.Transaction
@@ -42,42 +43,49 @@ class RecurringRepository @Inject constructor(
     }
 
     suspend fun syncTemplates() {
-        val profile = authRepository.currentUser.value ?: return
-        val householdId = profile.householdId ?: return
+        val profile = authRepository.currentUser.value
+        if (profile == null) { Log.w(TAG, "syncTemplates: no profile"); return }
+        val householdId = profile.householdId
+        if (householdId == null) { Log.w(TAG, "syncTemplates: no householdId"); return }
         try {
-            val remote = postgrest.from("recurring_templates")
+            val remote = postgrest.from("recurring_transactions")
                 .select {
                     filter { eq("household_id", householdId) }
                 }
                 .decodeList<RecurringTemplate>()
-            recurringDao.insertTemplates(remote)
+            val withNextRun = remote.map { it.copy(nextRun = computeNextRun(it.startDate, it.lastGeneratedDate, it.frequency)) }
+            Log.d(TAG, "syncTemplates: fetched ${withNextRun.size} rows for household=$householdId")
+            recurringDao.insertTemplates(withNextRun)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "syncTemplates failed", e)
         }
     }
 
     suspend fun addTemplate(template: RecurringTemplate) {
-        recurringDao.insertTemplate(template)
+        val withNextRun = template.copy(
+            nextRun = computeNextRun(template.startDate, template.lastGeneratedDate, template.frequency)
+        )
+        recurringDao.insertTemplate(withNextRun)
         try {
-            postgrest.from("recurring_templates").insert(template)
+            postgrest.from("recurring_transactions").insert(withNextRun)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "addTemplate failed", e)
         }
     }
 
     suspend fun deleteTemplate(template: RecurringTemplate) {
         recurringDao.deleteTemplate(template)
         try {
-            postgrest.from("recurring_templates").delete {
+            postgrest.from("recurring_transactions").delete {
                 filter { eq("id", template.id) }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "deleteTemplate failed", e)
         }
     }
 
     /**
-     * Process all due recurring templates. Creates transactions and advances nextRun.
+     * Process all due recurring templates. Creates transactions and advances lastGeneratedDate.
      * Called from RecurringWorker on a daily schedule.
      */
     suspend fun processDueTemplates() {
@@ -99,34 +107,40 @@ class RecurringRepository @Inject constructor(
             )
             transactionRepository.addTransaction(transaction)
 
-            // Advance the nextRun date
-            val nextRunDate = calculateNextRun(template.nextRun, template.frequency)
-            val updated = template.copy(nextRun = nextRunDate)
+            // Advance the lastGeneratedDate; nextRun will be recomputed from it.
+            val updated = template.copy(
+                lastGeneratedDate = today,
+                nextRun = computeNextRun(template.startDate, today, template.frequency)
+            )
             recurringDao.updateTemplate(updated)
             try {
-                postgrest.from("recurring_templates").update(
-                    mapOf("next_run" to nextRunDate)
+                postgrest.from("recurring_transactions").update(
+                    mapOf("last_generated_date" to today)
                 ) {
                     filter { eq("id", template.id) }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e(TAG, "processDueTemplates: failed to advance ${template.id}", e)
             }
         }
     }
 
-    private fun calculateNextRun(currentNextRun: String, frequency: String): String {
-        val date = try {
-            LocalDate.parse(currentNextRun)
-        } catch (_: Exception) {
-            LocalDate.now()
-        }
-        val nextDate = when (frequency) {
-            "daily" -> date.plusDays(1)
-            "weekly" -> date.plusWeeks(1)
-            "monthly" -> date.plusMonths(1)
-            else -> date.plusMonths(1)
-        }
-        return nextDate.format(DateTimeFormatter.ISO_LOCAL_DATE)
+    companion object { private const val TAG = "RecurringRepo" }
+}
+
+/**
+ * Compute the next scheduled run date for a recurring template.
+ * Mirrors the React app's logic: start from `lastGeneratedDate` (or `startDate` if never run),
+ * then add one unit of `frequency`.
+ */
+internal fun computeNextRun(startDate: String, lastGeneratedDate: String?, frequency: String): String {
+    val base = (lastGeneratedDate ?: startDate).ifBlank { return "" }
+    val date = try { LocalDate.parse(base) } catch (_: Exception) { return "" }
+    val next = when (frequency) {
+        "daily" -> date.plusDays(1)
+        "weekly" -> date.plusWeeks(1)
+        "monthly" -> date.plusMonths(1)
+        else -> date.plusMonths(1)
     }
+    return next.format(DateTimeFormatter.ISO_LOCAL_DATE)
 }

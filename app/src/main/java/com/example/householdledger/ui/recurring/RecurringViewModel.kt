@@ -121,7 +121,7 @@ class AddRecurringViewModel @Inject constructor(
                 categoryId = s.categoryId,
                 description = s.description,
                 frequency = s.frequency,
-                nextRun = s.startDate,
+                startDate = s.startDate,
                 isActive = true,
                 createdAt = java.time.Instant.now().toString()
             )

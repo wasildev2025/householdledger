@@ -1,5 +1,6 @@
 package com.example.householdledger.data.repository
 
+import android.util.Log
 import com.example.householdledger.data.local.TransactionDao
 import com.example.householdledger.data.local.OfflineQueueDao
 import com.example.householdledger.data.model.OfflineQueueItem
@@ -65,8 +66,10 @@ class TransactionRepository @Inject constructor(
      * Role-based filtering: servants and members only see their own transactions.
      */
     suspend fun syncTransactions() {
-        val profile = authRepository.currentUser.value ?: return
-        val householdId = profile.householdId ?: return
+        val profile = authRepository.currentUser.value
+        if (profile == null) { Log.w(TAG, "syncTransactions: no profile"); return }
+        val householdId = profile.householdId
+        if (householdId == null) { Log.w(TAG, "syncTransactions: no householdId"); return }
 
         try {
             val remoteTransactions = postgrest.from("transactions")
@@ -82,11 +85,14 @@ class TransactionRepository @Inject constructor(
                 }
                 .decodeList<Transaction>()
 
+            Log.d(TAG, "syncTransactions: fetched ${remoteTransactions.size} rows for household=$householdId role=${profile.role}")
             transactionDao.insertTransactions(remoteTransactions)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "syncTransactions failed", e)
         }
     }
+
+    companion object { private const val TAG = "TxRepo" }
 
     /**
      * Add transaction with optimistic local insert and offline queue fallback.

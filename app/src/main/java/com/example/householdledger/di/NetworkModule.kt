@@ -14,9 +14,11 @@ import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.realtime.realtime
+import io.github.jan.supabase.serializer.KotlinXSerializer
 import io.github.jan.supabase.storage.Storage
 import io.github.jan.supabase.storage.storage
 import javax.inject.Singleton
+import kotlinx.serialization.json.Json
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -29,6 +31,13 @@ object NetworkModule {
             supabaseUrl = "https://rattnfjlyfgozskbwyni.supabase.co",
             supabaseKey = "sb_publishable_r4b1KLNeMSqTVTfRNixcMw_M17Mk5Pd"
         ) {
+            defaultSerializer = KotlinXSerializer(
+                Json {
+                    ignoreUnknownKeys = true
+                    coerceInputValues = true
+                    explicitNulls = false
+                }
+            )
             install(Auth)
             install(Postgrest)
             install(Realtime)

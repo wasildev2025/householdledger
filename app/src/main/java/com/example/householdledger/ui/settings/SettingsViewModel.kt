@@ -25,7 +25,8 @@ data class SettingsState(
     val notificationsEnabled: Boolean = true,
     val currency: String = "PKR",
     val biometricEnabled: Boolean = false,
-    val monthlyBudget: Double = 0.0
+    val monthlyBudget: Double = 0.0,
+    val cycleStartDay: Int = 1
 )
 
 @HiltViewModel
@@ -41,14 +42,16 @@ class SettingsViewModel @Inject constructor(
         prefs.notificationsEnabled,
         prefs.currency,
         prefs.biometricEnabled,
-        prefs.monthlyBudget
-    ) { dark, notif, curr, bio, budget ->
+        prefs.monthlyBudget,
+        prefs.cycleStartDay
+    ) { values ->
         SettingsState(
-            darkMode = dark,
-            notificationsEnabled = notif,
-            currency = curr,
-            biometricEnabled = bio,
-            monthlyBudget = budget
+            darkMode = values[0] as String,
+            notificationsEnabled = values[1] as Boolean,
+            currency = values[2] as String,
+            biometricEnabled = values[3] as Boolean,
+            monthlyBudget = values[4] as Double,
+            cycleStartDay = values[5] as Int
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsState())
 
@@ -60,6 +63,7 @@ class SettingsViewModel @Inject constructor(
     fun setCurrency(value: String) { viewModelScope.launch { prefs.setCurrency(value) } }
     fun setBiometric(value: Boolean) { viewModelScope.launch { prefs.setBiometricEnabled(value) } }
     fun setMonthlyBudget(value: Double) { viewModelScope.launch { prefs.setMonthlyBudget(value) } }
+    fun setCycleStartDay(value: Int) { viewModelScope.launch { prefs.setCycleStartDay(value) } }
 
     fun exportJson() {
         viewModelScope.launch {

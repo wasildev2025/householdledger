@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material3.AlertDialog
@@ -73,6 +74,7 @@ fun SettingsScreen(
     var budgetDialog by remember { mutableStateOf(false) }
     var darkDialog by remember { mutableStateOf(false) }
     var currencyDialog by remember { mutableStateOf(false) }
+    var cycleDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(exportMessage) {
         if (exportMessage != null) {
@@ -166,6 +168,13 @@ fun SettingsScreen(
                             subtitle = if (state.monthlyBudget > 0) "%,.0f".format(state.monthlyBudget)
                             else "Not set",
                             onClick = { budgetDialog = true }
+                        )
+                        Divider()
+                        RowItem(
+                            icon = Icons.Outlined.CalendarMonth,
+                            title = "Cycle start day",
+                            subtitle = "Transactions roll over on day ${state.cycleStartDay} of each month",
+                            onClick = { cycleDialog = true }
                         )
                     }
                 }
@@ -286,6 +295,48 @@ fun SettingsScreen(
         selected = state.currency,
         onSelect = { viewModel.setCurrency(it); currencyDialog = false },
         onDismiss = { currencyDialog = false }
+    )
+    if (cycleDialog) CycleStartDayDialog(
+        initial = state.cycleStartDay,
+        onSave = { viewModel.setCycleStartDay(it); cycleDialog = false },
+        onDismiss = { cycleDialog = false }
+    )
+}
+
+@Composable
+private fun CycleStartDayDialog(initial: Int, onSave: (Int) -> Unit, onDismiss: () -> Unit) {
+    var text by remember { mutableStateOf(initial.toString()) }
+    val parsed = text.toIntOrNull()
+    val isValid = parsed != null && parsed in 1..31
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Cycle start day") },
+        text = {
+            Column {
+                Text(
+                    "Choose the day your monthly cycle begins (e.g. 28 if you're paid on the 28th). " +
+                    "For months without that day, the cycle ends on the last day instead.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it.filter { c -> c.isDigit() }.take(2) },
+                    label = { Text("Day (1–31)") },
+                    singleLine = true,
+                    isError = !isValid && text.isNotEmpty(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { parsed?.let { onSave(it.coerceIn(1, 31)) } },
+                enabled = isValid
+            ) { Text("Save") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }
 

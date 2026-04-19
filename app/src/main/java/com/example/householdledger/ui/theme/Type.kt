@@ -6,133 +6,169 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-private val DefaultFont = FontFamily.SansSerif
+// ============================================================================
+//  Typography: editorial-feeling, not corporate.
+//  System sans-serif with sharpened weights and tighter tracking on display sizes.
+//  All money styles use tabular numerals so amounts align vertically.
+// ============================================================================
+
+private val Body = FontFamily.SansSerif
+// On Android FontFamily.SansSerif maps to Roboto. In a follow-up we can swap to
+// Space Grotesk (via downloadable Google Fonts) for the display family without
+// touching any callsites — the styles below already allocate it separately.
+private val Display = FontFamily.SansSerif
 
 val Typography = Typography(
     displayLarge = TextStyle(
-        fontFamily = DefaultFont,
-        fontWeight = FontWeight.Normal,
-        fontSize = 57.sp,
-        lineHeight = 64.sp,
-        letterSpacing = (-0.25).sp
+        fontFamily = Display,
+        fontWeight = FontWeight.Bold,
+        fontSize = 56.sp,
+        lineHeight = 60.sp,
+        letterSpacing = (-1.4).sp
     ),
     displayMedium = TextStyle(
-        fontFamily = DefaultFont,
-        fontWeight = FontWeight.Normal,
-        fontSize = 45.sp,
-        lineHeight = 52.sp
+        fontFamily = Display,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 44.sp,
+        lineHeight = 48.sp,
+        letterSpacing = (-1.0).sp
     ),
     displaySmall = TextStyle(
-        fontFamily = DefaultFont,
-        fontWeight = FontWeight.Normal,
-        fontSize = 36.sp,
-        lineHeight = 44.sp
+        fontFamily = Display,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 34.sp,
+        lineHeight = 40.sp,
+        letterSpacing = (-0.8).sp
     ),
     headlineLarge = TextStyle(
-        fontFamily = DefaultFont,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 32.sp,
-        lineHeight = 40.sp
-    ),
-    headlineMedium = TextStyle(
-        fontFamily = DefaultFont,
+        fontFamily = Display,
         fontWeight = FontWeight.SemiBold,
         fontSize = 28.sp,
-        lineHeight = 36.sp
+        lineHeight = 34.sp,
+        letterSpacing = (-0.6).sp
     ),
-    headlineSmall = TextStyle(
-        fontFamily = DefaultFont,
+    headlineMedium = TextStyle(
+        fontFamily = Display,
         fontWeight = FontWeight.SemiBold,
         fontSize = 24.sp,
-        lineHeight = 32.sp
+        lineHeight = 30.sp,
+        letterSpacing = (-0.4).sp
+    ),
+    headlineSmall = TextStyle(
+        fontFamily = Display,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 20.sp,
+        lineHeight = 26.sp,
+        letterSpacing = (-0.2).sp
     ),
     titleLarge = TextStyle(
-        fontFamily = DefaultFont,
+        fontFamily = Body,
         fontWeight = FontWeight.SemiBold,
         fontSize = 22.sp,
-        lineHeight = 28.sp
+        lineHeight = 28.sp,
+        letterSpacing = (-0.3).sp
     ),
     titleMedium = TextStyle(
-        fontFamily = DefaultFont,
+        fontFamily = Body,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 16.sp,
+        fontSize = 17.sp,
         lineHeight = 24.sp,
-        letterSpacing = 0.15.sp
+        letterSpacing = (-0.1).sp
     ),
     titleSmall = TextStyle(
-        fontFamily = DefaultFont,
+        fontFamily = Body,
         fontWeight = FontWeight.SemiBold,
         fontSize = 14.sp,
         lineHeight = 20.sp,
-        letterSpacing = 0.1.sp
+        letterSpacing = 0.sp
     ),
     bodyLarge = TextStyle(
-        fontFamily = DefaultFont,
+        fontFamily = Body,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
+        letterSpacing = 0.sp
     ),
     bodyMedium = TextStyle(
-        fontFamily = DefaultFont,
+        fontFamily = Body,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.25.sp
-    ),
-    bodySmall = TextStyle(
-        fontFamily = DefaultFont,
-        fontWeight = FontWeight.Normal,
-        fontSize = 12.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.4.sp
-    ),
-    labelLarge = TextStyle(
-        fontFamily = DefaultFont,
-        fontWeight = FontWeight.Medium,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
+        lineHeight = 22.sp,
         letterSpacing = 0.1.sp
     ),
+    bodySmall = TextStyle(
+        fontFamily = Body,
+        fontWeight = FontWeight.Normal,
+        fontSize = 12.sp,
+        lineHeight = 18.sp,
+        letterSpacing = 0.2.sp
+    ),
+    labelLarge = TextStyle(
+        fontFamily = Body,
+        fontWeight = FontWeight.Medium,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+        letterSpacing = 0.sp
+    ),
     labelMedium = TextStyle(
-        fontFamily = DefaultFont,
+        fontFamily = Body,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+        letterSpacing = 0.3.sp
     ),
     labelSmall = TextStyle(
-        fontFamily = DefaultFont,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+        fontFamily = Body,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 10.sp,
+        lineHeight = 14.sp,
+        letterSpacing = 0.9.sp   // wider tracking — used for uppercase eyebrows
     )
 )
 
-val NumericFontFeatures = "tnum, lnum"
+const val NumericFontFeatures = "tnum, lnum"
+
+/** Hero money — used for the Cycle Pulse total. */
+val MoneyHero = TextStyle(
+    fontFamily = Display,
+    fontWeight = FontWeight.Bold,
+    fontSize = 48.sp,
+    lineHeight = 52.sp,
+    letterSpacing = (-1.8).sp,
+    fontFeatureSettings = NumericFontFeatures
+)
 
 val MoneyDisplay = TextStyle(
-    fontFamily = DefaultFont,
+    fontFamily = Display,
     fontWeight = FontWeight.Bold,
-    fontSize = 40.sp,
-    lineHeight = 48.sp,
-    letterSpacing = (-0.5).sp,
+    fontSize = 36.sp,
+    lineHeight = 40.sp,
+    letterSpacing = (-1.0).sp,
     fontFeatureSettings = NumericFontFeatures
 )
 
 val MoneyHeadline = TextStyle(
-    fontFamily = DefaultFont,
+    fontFamily = Display,
     fontWeight = FontWeight.Bold,
     fontSize = 22.sp,
     lineHeight = 28.sp,
+    letterSpacing = (-0.3).sp,
     fontFeatureSettings = NumericFontFeatures
 )
 
 val MoneyBody = TextStyle(
-    fontFamily = DefaultFont,
+    fontFamily = Body,
     fontWeight = FontWeight.SemiBold,
-    fontSize = 16.sp,
-    lineHeight = 24.sp,
+    fontSize = 15.sp,
+    lineHeight = 22.sp,
     fontFeatureSettings = NumericFontFeatures
+)
+
+/** Uppercase mini-eyebrow label used above section titles. */
+val EyebrowCaps = TextStyle(
+    fontFamily = Body,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 10.sp,
+    lineHeight = 14.sp,
+    letterSpacing = 1.4.sp
 )

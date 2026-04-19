@@ -2,92 +2,171 @@ package com.example.householdledger.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Palette v2 — indigo primary with deep navy surfaces for the hero card.
-// Inspired by modern fintech references (clean white canvas, saturated indigo
-// action color, cinematic dark-navy balance hero).
+// ============================================================================
+//  Visual system: warm cream + saffron accent + deep teal secondary.
+//  Chosen over generic fintech grey-blue to give the app its own identity
+//  and honor the cultural/household context (South Asian premium feel).
+// ============================================================================
 
-// ---- Primary / Indigo ----
-val IndigoPrimary = Color(0xFF4F46E5)          // indigo-600
-val IndigoOnPrimary = Color(0xFFFFFFFF)
-val IndigoPrimaryContainer = Color(0xFFE0E7FF) // indigo-100
-val IndigoOnPrimaryContainer = Color(0xFF3730A3)
+// ---- Light surfaces ----
+val CreamBackground      = Color(0xFFF9F7F3)  // warm cream (not pure white)
+val CreamSurface         = Color(0xFFFFFFFF)
+val CreamSurfaceTonal    = Color(0xFFF2EDE4)  // hovered/selected
+val CreamOnBackground    = Color(0xFF1A1A1A)
+val CreamOnSurface       = Color(0xFF1A1A1A)
+val CreamOnSurfaceVariant= Color(0xFF6F6A63)  // muted body text
+val CreamOutline         = Color(0xFFE2DDD2)
+val CreamOutlineVariant  = Color(0xFFEFEAE0)
 
-// Secondary is the "dark pill" selected state — near black slate.
-val SlateSecondary = Color(0xFF0F172A)          // slate-900
-val SlateOnSecondary = Color(0xFFFFFFFF)
-val SlateSecondaryContainer = Color(0xFFE2E8F0) // slate-200
-val SlateOnSecondaryContainer = Color(0xFF0F172A)
+// ---- Dark surfaces ----
+val CharcoalBackground   = Color(0xFF12110F)  // warm charcoal
+val CharcoalSurface      = Color(0xFF1C1B18)
+val CharcoalSurfaceTonal = Color(0xFF25231F)
+val CharcoalOnBackground = Color(0xFFF5F1EA)
+val CharcoalOnSurface    = Color(0xFFF5F1EA)
+val CharcoalOnSurfaceVariant = Color(0xFFA09A90)
+val CharcoalOutline      = Color(0xFF2C2A26)
+val CharcoalOutlineVariant = Color(0xFF201E1B)
 
-// Tertiary — cyan accent for chips and small highlights
-val CyanTertiary = Color(0xFF06B6D4)
-val CyanOnTertiary = Color(0xFFFFFFFF)
-val CyanTertiaryContainer = Color(0xFFCFFAFE)
-val CyanOnTertiaryContainer = Color(0xFF164E63)
+// ---- Saffron (primary) — warm, distinctive, money-signalling ----
+val SaffronLight             = Color(0xFFE8833A)
+val SaffronOnLight           = Color(0xFFFFFFFF)
+val SaffronContainerLight    = Color(0xFFFBE8D2)
+val SaffronOnContainerLight  = Color(0xFF6B3B12)
 
-// Light neutrals
-val LightBackground = Color(0xFFFAFAFA)
-val LightOnBackground = Color(0xFF0F172A)
-val LightSurface = Color(0xFFFFFFFF)
-val LightOnSurface = Color(0xFF0F172A)
-val LightSurfaceVariant = Color(0xFFF1F5F9)
-val LightOnSurfaceVariant = Color(0xFF64748B)
-val LightOutline = Color(0xFFCBD5E1)
-val LightOutlineVariant = Color(0xFFE2E8F0)
-val LightScrim = Color(0x52000000)
+val SaffronDark              = Color(0xFFF39A55)
+val SaffronOnDark            = Color(0xFF1A1208)
+val SaffronContainerDark     = Color(0xFF3E2614)
+val SaffronOnContainerDark   = Color(0xFFFBE8D2)
 
-val LightError = Color(0xFFDC2626)
-val LightOnError = Color(0xFFFFFFFF)
-val LightErrorContainer = Color(0xFFFEE2E2)
-val LightOnErrorContainer = Color(0xFF7F1D1D)
+// ---- Deep Teal (secondary — links, secondary actions) ----
+val TealLight             = Color(0xFF0F766E)
+val TealOnLight           = Color(0xFFFFFFFF)
+val TealContainerLight    = Color(0xFFCCFBF1)
+val TealOnContainerLight  = Color(0xFF0C4A3F)
 
-// ---- Dark scheme ----
-val IndigoPrimaryDark = Color(0xFF818CF8)       // indigo-400
-val IndigoOnPrimaryDark = Color(0xFF1E1B4B)
-val IndigoPrimaryContainerDark = Color(0xFF3730A3)
-val IndigoOnPrimaryContainerDark = Color(0xFFE0E7FF)
+val TealDark              = Color(0xFF5EEAD4)
+val TealOnDark            = Color(0xFF0C4A3F)
+val TealContainerDark     = Color(0xFF115E57)
+val TealOnContainerDark   = Color(0xFFCCFBF1)
 
-val SlateSecondaryDark = Color(0xFFE2E8F0)
-val SlateOnSecondaryDark = Color(0xFF0F172A)
-val SlateSecondaryContainerDark = Color(0xFF1E293B)
-val SlateOnSecondaryContainerDark = Color(0xFFE2E8F0)
+// ---- Tertiary: soft gold (subtle highlights, upcoming bills) ----
+val GoldLight             = Color(0xFFB08448)
+val GoldContainerLight    = Color(0xFFF5E4C8)
+val GoldDark              = Color(0xFFE5C07B)
+val GoldContainerDark     = Color(0xFF3D2E15)
 
-val CyanTertiaryDark = Color(0xFF67E8F9)
-val CyanOnTertiaryDark = Color(0xFF164E63)
-val CyanTertiaryContainerDark = Color(0xFF0E7490)
-val CyanOnTertiaryContainerDark = Color(0xFFCFFAFE)
+// ---- Semantic: income / expense ----
+val IncomeLight           = Color(0xFF2F8F6A)
+val IncomeLightContainer  = Color(0xFFD9F0E4)
+val IncomeOnContainerLight= Color(0xFF0E5337)
+val IncomeDark            = Color(0xFF4EB387)
+val IncomeDarkContainer   = Color(0xFF15402E)
+val IncomeOnContainerDark = Color(0xFFBDE8D3)
 
-val DarkBackground = Color(0xFF020617)          // slate-950
-val DarkOnBackground = Color(0xFFF1F5F9)
-val DarkSurface = Color(0xFF0F172A)
-val DarkOnSurface = Color(0xFFF1F5F9)
-val DarkSurfaceVariant = Color(0xFF1E293B)
-val DarkOnSurfaceVariant = Color(0xFF94A3B8)
-val DarkOutline = Color(0xFF334155)
-val DarkOutlineVariant = Color(0xFF1E293B)
-val DarkScrim = Color(0x52000000)
+val ExpenseLight          = Color(0xFFD14343)
+val ExpenseLightContainer = Color(0xFFF8DADA)
+val ExpenseOnContainerLight = Color(0xFF6B1414)
+val ExpenseDark           = Color(0xFFEC6A6A)
+val ExpenseDarkContainer  = Color(0xFF3E1818)
+val ExpenseOnContainerDark= Color(0xFFF8DADA)
 
-val DarkError = Color(0xFFF87171)
-val DarkOnError = Color(0xFF7F1D1D)
-val DarkErrorContainer = Color(0xFF450A0A)
-val DarkOnErrorContainer = Color(0xFFFECACA)
+val WarningLight          = Color(0xFFB08448)
+val WarningDark           = Color(0xFFE5C07B)
 
-// ---- Semantic income/expense ----
-val IncomeLight = Color(0xFF15803D)
-val IncomeLightContainer = Color(0xFFDCFCE7)
-val IncomeDark = Color(0xFF4ADE80)
-val IncomeDarkContainer = Color(0xFF14532D)
+// ---- Error (UI problems, NOT financial) ----
+val ErrorLight            = Color(0xFFC23A3A)
+val ErrorLightContainer   = Color(0xFFF8DADA)
+val ErrorOnLight          = Color(0xFFFFFFFF)
+val ErrorDark             = Color(0xFFEC6A6A)
+val ErrorDarkContainer    = Color(0xFF3E1818)
+val ErrorOnDark           = Color(0xFF2E0C0C)
 
-val ExpenseLight = Color(0xFFDC2626)
-val ExpenseLightContainer = Color(0xFFFEE2E2)
-val ExpenseDark = Color(0xFFF87171)
-val ExpenseDarkContainer = Color(0xFF450A0A)
+val Scrim                 = Color(0x73000000)
 
-val WarningLight = Color(0xFFB45309)
-val WarningDark = Color(0xFFFCD34D)
+// ---- Cycle Pulse hero gradient (saffron → coral, warm) ----
+val PulseGradientTop      = Color(0xFFF6B27B)  // peach
+val PulseGradientMid      = Color(0xFFE8833A)  // saffron
+val PulseGradientBottom   = Color(0xFFCD5F2C)  // burnt orange
 
-// ---- Hero (balance card) gradient ----
-// Cinematic dark navy → royal blue, used behind the big balance display.
-val HeroGradientTop = Color(0xFF0B1437)    // very dark blue-black
-val HeroGradientMid = Color(0xFF1E3A8A)    // indigo-900
-val HeroGradientBottom = Color(0xFF2B3BB5) // brighter indigo
-val HeroSheen = Color(0xFF6366F1)          // diagonal sheen overlay
+// ---- Wallet card palettes (duotone, one per identity slot) ----
+// Each index yields a distinct wallet card color pair; cycle by id hash.
+val WalletPalette = listOf(
+    Color(0xFF1F2937) to Color(0xFF374151),     // Graphite
+    Color(0xFF7C2D12) to Color(0xFFC2410C),     // Amber
+    Color(0xFF134E4A) to Color(0xFF0F766E),     // Teal
+    Color(0xFF4C1D95) to Color(0xFF7C3AED),     // Violet
+    Color(0xFF831843) to Color(0xFFBE185D),     // Berry
+    Color(0xFF1E3A8A) to Color(0xFF3B82F6)      // Indigo (kept for variety)
+)
+
+// ---- Back-compat aliases (so unchanged screens still compile) ----
+// These keep older files building while we migrate piece-by-piece.
+val LightBackground        = CreamBackground
+val LightOnBackground      = CreamOnBackground
+val LightSurface           = CreamSurface
+val LightOnSurface         = CreamOnSurface
+val LightSurfaceVariant    = CreamSurfaceTonal
+val LightOnSurfaceVariant  = CreamOnSurfaceVariant
+val LightOutline           = CreamOutline
+val LightOutlineVariant    = CreamOutlineVariant
+val LightScrim             = Scrim
+
+val LightError             = ErrorLight
+val LightOnError           = ErrorOnLight
+val LightErrorContainer    = ErrorLightContainer
+val LightOnErrorContainer  = Color(0xFF6B1414)
+
+val DarkBackground         = CharcoalBackground
+val DarkOnBackground       = CharcoalOnBackground
+val DarkSurface            = CharcoalSurface
+val DarkOnSurface          = CharcoalOnSurface
+val DarkSurfaceVariant     = CharcoalSurfaceTonal
+val DarkOnSurfaceVariant   = CharcoalOnSurfaceVariant
+val DarkOutline            = CharcoalOutline
+val DarkOutlineVariant     = CharcoalOutlineVariant
+val DarkScrim              = Scrim
+
+val DarkError              = ErrorDark
+val DarkOnError            = ErrorOnDark
+val DarkErrorContainer     = ErrorDarkContainer
+val DarkOnErrorContainer   = Color(0xFFF8DADA)
+
+val IndigoPrimary              = SaffronLight
+val IndigoOnPrimary            = SaffronOnLight
+val IndigoPrimaryContainer     = SaffronContainerLight
+val IndigoOnPrimaryContainer   = SaffronOnContainerLight
+
+val IndigoPrimaryDark          = SaffronDark
+val IndigoOnPrimaryDark        = SaffronOnDark
+val IndigoPrimaryContainerDark = SaffronContainerDark
+val IndigoOnPrimaryContainerDark = SaffronOnContainerDark
+
+val SlateSecondary             = TealLight
+val SlateOnSecondary           = TealOnLight
+val SlateSecondaryContainer    = TealContainerLight
+val SlateOnSecondaryContainer  = TealOnContainerLight
+
+val SlateSecondaryDark         = TealDark
+val SlateOnSecondaryDark       = TealOnDark
+val SlateSecondaryContainerDark= TealContainerDark
+val SlateOnSecondaryContainerDark = TealOnContainerDark
+
+val CyanTertiary               = GoldLight
+val CyanOnTertiary             = Color(0xFFFFFFFF)
+val CyanTertiaryContainer      = GoldContainerLight
+val CyanOnTertiaryContainer    = Color(0xFF5A3F1A)
+
+val CyanTertiaryDark           = GoldDark
+val CyanOnTertiaryDark         = Color(0xFF3D2E15)
+val CyanTertiaryContainerDark  = GoldContainerDark
+val CyanOnTertiaryContainerDark= Color(0xFFF5E4C8)
+
+val IncomeLightContainer_Alias  = IncomeLightContainer
+val ExpenseLightContainer_Alias = ExpenseLightContainer
+
+// Legacy hero colors (used by HeroCard.kt) — now repoint to the pulse gradient.
+val HeroGradientTop    = PulseGradientTop
+val HeroGradientMid    = PulseGradientMid
+val HeroGradientBottom = PulseGradientBottom
+val HeroSheen          = Color(0x33FFFFFF)

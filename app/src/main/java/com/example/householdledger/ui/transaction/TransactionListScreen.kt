@@ -55,10 +55,7 @@ import com.example.householdledger.ui.components.CategoryLogo
 import com.example.householdledger.ui.components.EmptyState
 import com.example.householdledger.ui.components.MoneyText
 import com.example.householdledger.ui.components.MoneyTone
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
+import com.example.householdledger.util.DateUtil
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -136,20 +133,16 @@ fun TransactionListScreen(
 
                 if (state.sections.isEmpty() && !state.isRefreshing) {
                     item {
-                        Box(Modifier.fillMaxWidth().padding(vertical = 40.dp), contentAlignment = Alignment.Center) {
-                            EmptyState(
-                                icon = Icons.Outlined.Receipt,
-                                title = "No transactions",
-                                description = "Add your first transaction to get started."
-                            )
-                        }
+                        CycleAwareEmptyState(
+                            dayIndex = state.cycleDayIndex,
+                            cycleLengthDays = state.cycleLengthDays,
+                            filter = state.filter
+                        )
                     }
                 } else {
                     state.sections.forEach { section ->
                         item(key = "header-${section.label}") { DayHeader(section) }
-                        items(section.rows, key = { it.transaction.id }) { row ->
-                            TransactionCard(row)
-                        }
+                        item(key = "group-${section.label}") { DayGroupCard(section.rows) }
                     }
                     if (state.canLoadMore) {
                         item {
@@ -176,28 +169,95 @@ private inline fun <T> androidx.compose.foundation.lazy.LazyListScope.items(
 
 @Composable
 private fun MonthSummaryCard(state: TxnListState) {
-    AppCard(contentPadding = PaddingValues(16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("This month",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(2.dp))
-                Text("Spending", style = MaterialTheme.typography.titleSmall)
-                Spacer(Modifier.height(4.dp))
-                MoneyText(amount = state.monthSpend,
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                    tone = MoneyTone.Expense)
+    AppCard(contentPadding = PaddingValues(20.dp)) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "SPEND THIS CYCLE",
+                    style = com.example.householdledger.ui.theme.EyebrowCaps,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    state.cycleLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-            Column(horizontalAlignment = Alignment.End) {
-                Text("Income", style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(6.dp))
-                MoneyText(amount = state.monthIncome,
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                    tone = MoneyTone.Income)
+            Spacer(Modifier.height(8.dp))
+            MoneyText(
+                amount = state.monthSpend,
+                style = com.example.householdledger.ui.theme.MoneyHero.copy(
+                    fontSize = androidx.compose.ui.unit.TextUnit.Unspecified
+                ),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IncomeDot()
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Income",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    MoneyText(
+                        amount = state.monthIncome,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        tone = MoneyTone.Income
+                    )
+                }
+                Text(
+                    "Day ${state.cycleDayIndex + 1} / ${state.cycleLengthDays}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
+            Spacer(Modifier.height(12.dp))
+            CycleProgressBar(
+                dayIndex = state.cycleDayIndex,
+                lengthDays = state.cycleLengthDays
+            )
         }
+    }
+}
+
+@Composable
+private fun IncomeDot() {
+    Box(
+        modifier = Modifier
+            .size(8.dp)
+            .background(
+                com.example.householdledger.ui.theme.appColors.income,
+                androidx.compose.foundation.shape.CircleShape
+            )
+    )
+}
+
+@Composable
+private fun CycleProgressBar(dayIndex: Int, lengthDays: Int) {
+    val ratio = if (lengthDays > 0) ((dayIndex + 1f) / lengthDays).coerceIn(0f, 1f) else 0f
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(4.dp)
+            .background(MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(999.dp))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(ratio)
+                .fillMaxHeight()
+                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(999.dp))
+        )
     }
 }
 
@@ -261,18 +321,20 @@ private fun StackedCategoryBar(slices: List<CategorySliceVm>) {
 @Composable
 private fun DayHeader(section: DaySection) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 2.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 4.dp, end = 4.dp, top = 16.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            section.label,
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onBackground,
+            section.label.uppercase(),
+            style = com.example.householdledger.ui.theme.EyebrowCaps,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f)
         )
         MoneyText(
             amount = section.total,
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
             showSign = true,
             tone = when {
                 section.total > 0 -> MoneyTone.Income
@@ -284,13 +346,70 @@ private fun DayHeader(section: DaySection) {
 }
 
 @Composable
+private fun DayGroupCard(rows: List<TxnListRow>) {
+    AppCard(contentPadding = PaddingValues(0.dp)) {
+        Column {
+            rows.forEachIndexed { index, row ->
+                TransactionRow(row)
+                if (index < rows.lastIndex) {
+                    androidx.compose.material3.HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                        modifier = Modifier.padding(start = 68.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CycleAwareEmptyState(
+    dayIndex: Int,
+    cycleLengthDays: Int,
+    filter: TxnFilter
+) {
+    val dayNumber = dayIndex + 1
+    val title = when (filter) {
+        TxnFilter.Income -> "No income this cycle yet"
+        TxnFilter.Expense -> "No expenses this cycle"
+        TxnFilter.Transfer -> "No transfers this cycle"
+        TxnFilter.All -> if (dayNumber <= 2) "Fresh cycle, fresh start" else "Nothing logged yet"
+    }
+    val body = when (filter) {
+        TxnFilter.All -> "Day $dayNumber of $cycleLengthDays. Tap + to record your first transaction."
+        else -> "Day $dayNumber of $cycleLengthDays. Switch filters to see other activity."
+    }
+    AppCard(tonal = true, contentPadding = PaddingValues(24.dp)) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
 private fun FilterBar(filter: TxnFilter, onFilter: (TxnFilter) -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         TxnFilter.values().forEach { opt ->
-            FilterChipPill(opt.name, opt == filter) { onFilter(opt) }
+            val label = when (opt) {
+                TxnFilter.All -> "All types"
+                TxnFilter.Expense -> "Expense"
+                TxnFilter.Income -> "Income"
+                TxnFilter.Transfer -> "Transfer"
+            }
+            FilterChipPill(label, opt == filter) { onFilter(opt) }
         }
     }
 }
@@ -302,7 +421,13 @@ private fun PersonFilterBar(filter: PersonFilter, onFilter: (PersonFilter) -> Un
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         PersonFilter.values().forEach { opt ->
-            FilterChipPill(opt.name, opt == filter) { onFilter(opt) }
+            val label = when (opt) {
+                PersonFilter.All -> "Everyone"
+                PersonFilter.Admin -> "Admin"
+                PersonFilter.Servants -> "Servants"
+                PersonFilter.Members -> "Members"
+            }
+            FilterChipPill(label, opt == filter) { onFilter(opt) }
         }
     }
 }
@@ -324,31 +449,33 @@ private fun FilterChipPill(label: String, selected: Boolean, onClick: () -> Unit
 }
 
 @Composable
-private fun TransactionCard(row: TxnListRow) {
+private fun TransactionRow(row: TxnListRow) {
     val txn = row.transaction
     val (icon, tone) = when (txn.type) {
         "income" -> Icons.AutoMirrored.Outlined.TrendingUp to MoneyTone.Income
         "transfer" -> Icons.Outlined.SwapHoriz to MoneyTone.Neutral
         else -> Icons.AutoMirrored.Outlined.TrendingDown to MoneyTone.Expense
     }
-    AppCard(contentPadding = PaddingValues(14.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            CategoryLogo(
-                name = row.category?.name ?: txn.description,
-                colorHex = row.category?.color,
-                fallbackIcon = icon
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)
+    ) {
+        CategoryLogo(
+            name = row.category?.name ?: txn.description,
+            colorHex = row.category?.color,
+            fallbackIcon = icon
+        )
+        Spacer(Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = row.category?.name ?: txn.description.ifBlank {
+                    txn.type.replaceFirstChar { c -> c.uppercase() }
+                },
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1
             )
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = row.category?.name ?: txn.description.ifBlank {
-                        txn.type.replaceFirstChar { c -> c.uppercase() }
-                    },
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1
-                )
-                Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(2.dp))
                 Text(
                     formatTime(txn.date),
                     style = MaterialTheme.typography.labelSmall,
@@ -370,11 +497,4 @@ private fun parseHex(hex: String?): Color? {
     return runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull()
 }
 
-private fun formatTime(raw: String): String {
-    val dt = try {
-        LocalDateTime.parse(raw)
-    } catch (_: DateTimeParseException) {
-        try { LocalDate.parse(raw).atStartOfDay() } catch (_: DateTimeParseException) { return raw }
-    }
-    return dt.format(DateTimeFormatter.ofPattern("h:mm a"))
-}
+private fun formatTime(raw: String): String = DateUtil.formatLocalTime(raw)

@@ -4,10 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.householdledger.data.model.Category
 import com.example.householdledger.data.model.Transaction
+import com.example.householdledger.data.local.PreferenceManager
 import com.example.householdledger.data.repository.AuthRepository
 import com.example.householdledger.data.repository.CategoryRepository
 import com.example.householdledger.data.repository.TransactionRepository
+import com.example.householdledger.util.Cycle
+import com.example.householdledger.util.DateUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -15,8 +19,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.format.DateTimeParseException
 import javax.inject.Inject
 
 enum class TxnFilter { All, Expense, Income, Transfer }
@@ -28,6 +30,9 @@ data class TxnListState(
     val categorySlices: List<CategorySliceVm> = emptyList(),
     val monthSpend: Double = 0.0,
     val monthIncome: Double = 0.0,
+    val cycleLabel: String = "",
+    val cycleDayIndex: Int = 0,
+    val cycleLengthDays: Int = 30,
     val filter: TxnFilter = TxnFilter.All,
     val personFilter: PersonFilter = PersonFilter.All,
     val visibleCount: Int = PAGE_SIZE,
@@ -62,7 +67,8 @@ const val PAGE_SIZE = 25
 class TransactionListViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     categoryRepository: CategoryRepository,
-    authRepository: AuthRepository
+    authRepository: AuthRepository,
+    preferenceManager: PreferenceManager
 ) : ViewModel() {
 
     private val filter = MutableStateFlow(TxnFilter.All)
@@ -70,13 +76,14 @@ class TransactionListViewModel @Inject constructor(
     private val visibleCount = MutableStateFlow(PAGE_SIZE)
     private val refreshing = MutableStateFlow(false)
 
-    val state: StateFlow<TxnListState> = combine(
+    val state: StateFlow<TxnListState> = combineSix(
         transactionRepository.transactions,
         categoryRepository.categories,
         authRepository.currentUser,
         filter,
-        personFilter
-    ) { txns, cats, user, f, pf ->
+        personFilter,
+        preferenceManager.cycleStartDay
+    ) { txns, cats, user, f, pf, cycleStartDay ->
         val categoryById = cats.associateBy { it.id }
         val filteredType = when (f) {
             TxnFilter.All -> txns
@@ -96,15 +103,13 @@ class TransactionListViewModel @Inject constructor(
 
         val sections = buildDaySections(items)
 
-        // Category breakdown for THIS MONTH (unaffected by pagination)
-        val thisMonth = java.time.YearMonth.now()
-        val monthTxns = filtered.filter {
-            parseDate(it.date)?.let { d -> java.time.YearMonth.of(d.year, d.monthValue) == thisMonth } ?: false
-        }
-        val monthSpend = monthTxns.filter { it.type == "expense" }.sumOf { it.amount }
-        val monthIncome = monthTxns.filter { it.type == "income" }.sumOf { it.amount }
+        // Category breakdown for the current CYCLE (unaffected by pagination)
+        val cycle = Cycle.current(LocalDate.now(), cycleStartDay)
+        val cycleTxns = filtered.filter { parseDate(it.date)?.let(cycle::contains) == true }
+        val monthSpend = cycleTxns.filter { it.type == "expense" }.sumOf { it.amount }
+        val monthIncome = cycleTxns.filter { it.type == "income" }.sumOf { it.amount }
 
-        val byCat = monthTxns.filter { it.type == "expense" }
+        val byCat = cycleTxns.filter { it.type == "expense" }
             .groupBy { it.categoryId }
             .map { (catId, txns) ->
                 val cat = catId?.let(categoryById::get)
@@ -117,12 +122,23 @@ class TransactionListViewModel @Inject constructor(
                 )
             }.sortedByDescending { it.total }
 
+        val cycleLengthDays = java.time.temporal.ChronoUnit.DAYS
+            .between(cycle.start, cycle.endExclusive).toInt().coerceAtLeast(1)
+        val dayIndex = java.time.temporal.ChronoUnit.DAYS
+            .between(cycle.start, LocalDate.now()).toInt()
+            .coerceIn(0, cycleLengthDays - 1)
+        val fmt = java.time.format.DateTimeFormatter.ofPattern("d MMM")
+        val cycleLabel = "${cycle.start.format(fmt)} – ${cycle.endExclusive.minusDays(1).format(fmt)}"
+
         TxnListState(
             items = items,
             sections = sections,
             categorySlices = byCat,
             monthSpend = monthSpend,
             monthIncome = monthIncome,
+            cycleLabel = cycleLabel,
+            cycleDayIndex = dayIndex,
+            cycleLengthDays = cycleLengthDays,
             filter = f,
             personFilter = pf,
             visibleCount = count,
@@ -187,9 +203,25 @@ class TransactionListViewModel @Inject constructor(
         viewModelScope.launch { transactionRepository.deleteTransaction(transaction) }
     }
 
-    private fun parseDate(raw: String): LocalDate? = try {
-        LocalDateTime.parse(raw).toLocalDate()
-    } catch (_: DateTimeParseException) {
-        try { LocalDate.parse(raw) } catch (_: DateTimeParseException) { null }
-    }
+    private fun parseDate(raw: String): LocalDate? = DateUtil.parseDate(raw)
+}
+
+@Suppress("UNCHECKED_CAST")
+private fun <T1, T2, T3, T4, T5, T6, R> combineSix(
+    f1: Flow<T1>,
+    f2: Flow<T2>,
+    f3: Flow<T3>,
+    f4: Flow<T4>,
+    f5: Flow<T5>,
+    f6: Flow<T6>,
+    transform: suspend (T1, T2, T3, T4, T5, T6) -> R
+): Flow<R> = combine(f1, f2, f3, f4, f5, f6) { values ->
+    transform(
+        values[0] as T1,
+        values[1] as T2,
+        values[2] as T3,
+        values[3] as T4,
+        values[4] as T5,
+        values[5] as T6
+    )
 }

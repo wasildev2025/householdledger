@@ -6,6 +6,8 @@ import com.example.householdledger.data.model.DairyLog
 import com.example.householdledger.data.repository.AuthRepository
 import com.example.householdledger.data.repository.DairyRepository
 import com.example.householdledger.data.repository.HouseholdRepository
+import com.example.householdledger.util.Cycle
+import com.example.householdledger.util.DateUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,17 +33,23 @@ class DairyViewModel @Inject constructor(
             val householdId = authRepository.currentUser.value?.householdId
             if (householdId != null) {
                 dairyRepository.syncDairyLogs()
-                
+
                 combine(
                     dairyRepository.dairyLogs,
                     householdRepository.household
                 ) { logs, household ->
-                    val filteredLogs = logs.filter { it.householdId == householdId }
+                    val householdLogs = logs.filter { it.householdId == householdId }
+                    val monthRange = Cycle.calendarMonth(LocalDate.now())
+                    val monthLogs = householdLogs.filter { log ->
+                        DateUtil.parseDate(log.date)?.let(monthRange::contains) == true
+                    }
                     DairyUiState(
-                        logs = filteredLogs,
+                        logs = householdLogs.sortedByDescending {
+                            DateUtil.parseDate(it.date) ?: LocalDate.MIN
+                        },
                         milkPrice = household?.milkPrice ?: 150.0,
                         yogurtPrice = household?.yogurtPrice ?: 200.0,
-                        totalMonthlyBill = filteredLogs.sumOf { it.totalBill }
+                        totalMonthlyBill = monthLogs.sumOf { it.totalBill }
                     )
                 }.collect { state ->
                     _uiState.value = state

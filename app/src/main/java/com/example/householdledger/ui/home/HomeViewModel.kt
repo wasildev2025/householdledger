@@ -13,6 +13,8 @@ import com.example.householdledger.data.repository.CategoryRepository
 import com.example.householdledger.data.repository.PeopleRepository
 import com.example.householdledger.data.repository.RecurringRepository
 import com.example.householdledger.data.repository.TransactionRepository
+import com.example.householdledger.util.Cycle
+import com.example.householdledger.util.DateUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,10 +25,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
 import javax.inject.Inject
 
 enum class HomeFilter { All, Servants, Members }
@@ -60,7 +59,14 @@ data class HomeUiState(
     val unreadMessages: Int = 0,
     val isOffline: Boolean = false,
     val isLoading: Boolean = true,
-    val aiInsight: String? = null
+    val aiInsight: String? = null,
+    // Cycle Pulse inputs
+    val cycleStart: java.time.LocalDate = java.time.LocalDate.now(),
+    val cycleEndInclusive: java.time.LocalDate = java.time.LocalDate.now(),
+    val cycleDayIndex: Int = 0,       // 0 = first day of cycle
+    val cycleLengthDays: Int = 30,
+    val projectedExpense: Double = 0.0,
+    val projectedOverrunPercent: Float = 0f  // signed: 0f safe, positive = over, negative = under
 )
 
 data class TransactionRow(
@@ -118,7 +124,8 @@ class HomeViewModel @Inject constructor(
         preferenceManager.monthlyBudget,
         aiInsight,
         isOffline,
-        upcomingBillsFlow
+        upcomingBillsFlow,
+        preferenceManager.cycleStartDay
     ) { arr ->
         @Suppress("UNCHECKED_CAST") val transactions = arr[0] as List<Transaction>
         @Suppress("UNCHECKED_CAST") val categories = arr[1] as List<Category>
@@ -130,10 +137,11 @@ class HomeViewModel @Inject constructor(
         val insight = arr[7] as String?
         val offline = arr[8] as Boolean
         @Suppress("UNCHECKED_CAST") val upcoming = arr[9] as List<UpcomingBill>
+        val cycleStartDay = arr[10] as Int
 
         val now = LocalDate.now()
-        val thisMonth = YearMonth.of(now.year, now.monthValue)
-        val prevMonth = thisMonth.minusMonths(1)
+        val thisCycle = Cycle.current(now, cycleStartDay)
+        val prevCycle = Cycle.previous(now, cycleStartDay)
         val categoryById = categories.associateBy { it.id }
 
         // Role-based scoping
@@ -149,14 +157,14 @@ class HomeViewModel @Inject constructor(
             HomeFilter.Members -> scoped.filter { it.memberId != null }
         }
 
-        val thisMonthTxns = byFilter.filter { parsedMonth(it.date) == thisMonth }
-        val prevMonthTxns = byFilter.filter { parsedMonth(it.date) == prevMonth }
+        val thisCycleTxns = byFilter.filter { parseDate(it.date)?.let(thisCycle::contains) == true }
+        val prevCycleTxns = byFilter.filter { parseDate(it.date)?.let(prevCycle::contains) == true }
 
-        val income = thisMonthTxns.filter { it.type == "income" }.sumOf { it.amount }
-        val expense = thisMonthTxns.filter { it.type == "expense" }.sumOf { it.amount }
-        val transfers = thisMonthTxns.filter { it.type == "transfer" }.sumOf { it.amount }
-        val prevIncome = prevMonthTxns.filter { it.type == "income" }.sumOf { it.amount }
-        val prevExpense = prevMonthTxns.filter { it.type == "expense" }.sumOf { it.amount }
+        val income = thisCycleTxns.filter { it.type == "income" }.sumOf { it.amount }
+        val expense = thisCycleTxns.filter { it.type == "expense" }.sumOf { it.amount }
+        val transfers = thisCycleTxns.filter { it.type == "transfer" }.sumOf { it.amount }
+        val prevIncome = prevCycleTxns.filter { it.type == "income" }.sumOf { it.amount }
+        val prevExpense = prevCycleTxns.filter { it.type == "expense" }.sumOf { it.amount }
 
         val recent = byFilter
             .sortedByDescending { parseDate(it.date) ?: LocalDate.MIN.atStartOfDay().toLocalDate() }
@@ -166,7 +174,19 @@ class HomeViewModel @Inject constructor(
         val budgetCap = if (userBudget > 0) userBudget else income.takeIf { it > 0 } ?: 0.0
         val budgetUsed = if (budgetCap > 0) (expense / budgetCap).toFloat().coerceIn(0f, 1.5f) else 0f
 
-        val wallets = buildWallets(servants, members, thisMonthTxns, f)
+        val wallets = buildWallets(servants, members, thisCycleTxns, f)
+
+        val cycleLengthDays = java.time.temporal.ChronoUnit.DAYS
+            .between(thisCycle.start, thisCycle.endExclusive).toInt()
+            .coerceAtLeast(1)
+        val dayIndex = java.time.temporal.ChronoUnit.DAYS
+            .between(thisCycle.start, now).toInt()
+            .coerceIn(0, cycleLengthDays - 1)
+        val daysElapsedInclusive = (dayIndex + 1).coerceAtLeast(1)
+        val projectedExpense = expense / daysElapsedInclusive * cycleLengthDays
+        val overrunPercent = if (budgetCap > 0) {
+            ((projectedExpense - budgetCap) / budgetCap).toFloat()
+        } else 0f
 
         HomeUiState(
             userName = user?.name?.substringBefore(' ') ?: "there",
@@ -178,7 +198,7 @@ class HomeViewModel @Inject constructor(
             transfers = transfers,
             incomeDeltaPercent = deltaPercent(income, prevIncome),
             expenseDeltaPercent = deltaPercent(expense, prevExpense),
-            monthLabel = now.month.name.lowercase().replaceFirstChar { it.uppercase() },
+            monthLabel = buildCycleLabel(thisCycle.start, thisCycle.endExclusive.minusDays(1)),
             budgetCap = budgetCap,
             budgetUsedPercent = budgetUsed,
             recent = recent,
@@ -187,7 +207,13 @@ class HomeViewModel @Inject constructor(
             filter = f,
             isOffline = offline,
             isLoading = false,
-            aiInsight = insight
+            aiInsight = insight,
+            cycleStart = thisCycle.start,
+            cycleEndInclusive = thisCycle.endExclusive.minusDays(1),
+            cycleDayIndex = dayIndex,
+            cycleLengthDays = cycleLengthDays,
+            projectedExpense = projectedExpense,
+            projectedOverrunPercent = overrunPercent
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState())
 
@@ -243,14 +269,12 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun parseDate(raw: String): LocalDate? = try {
-        LocalDateTime.parse(raw).toLocalDate()
-    } catch (_: DateTimeParseException) {
-        try { LocalDate.parse(raw) } catch (_: DateTimeParseException) { null }
-    }
+    private fun parseDate(raw: String): LocalDate? = DateUtil.parseDate(raw)
 
-    private fun parsedMonth(raw: String): YearMonth? =
-        parseDate(raw)?.let { YearMonth.of(it.year, it.monthValue) }
+    private fun buildCycleLabel(start: LocalDate, endInclusive: LocalDate): String {
+        val fmt = DateTimeFormatter.ofPattern("d MMM")
+        return "${start.format(fmt)} – ${endInclusive.format(fmt)}"
+    }
 
     private fun deltaPercent(current: Double, previous: Double): Float {
         if (previous <= 0) return if (current > 0) 100f else 0f

@@ -1,5 +1,6 @@
 package com.example.householdledger.data.repository
 
+import android.util.Log
 import com.example.householdledger.data.local.CategoryDao
 import com.example.householdledger.data.local.OfflineQueueDao
 import com.example.householdledger.data.model.Category
@@ -37,17 +38,22 @@ class CategoryRepository @Inject constructor(
     private var realtimeJob: Job? = null
 
     suspend fun syncCategories() {
-        val profile = authRepository.currentUser.value ?: return
-        val householdId = profile.householdId ?: return
+        val profile = authRepository.currentUser.value
+        if (profile == null) { Log.w(TAG, "syncCategories: no profile"); return }
+        val householdId = profile.householdId
+        if (householdId == null) { Log.w(TAG, "syncCategories: no householdId"); return }
         try {
             val remote = postgrest.from("categories")
                 .select { filter { eq("household_id", householdId) } }
                 .decodeList<Category>()
+            Log.d(TAG, "syncCategories: fetched ${remote.size} rows for household=$householdId")
             categoryDao.insertCategories(remote)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "syncCategories failed", e)
         }
     }
+
+    companion object { private const val TAG = "CatRepo" }
 
     suspend fun addCategory(category: Category) {
         categoryDao.insertCategory(category)

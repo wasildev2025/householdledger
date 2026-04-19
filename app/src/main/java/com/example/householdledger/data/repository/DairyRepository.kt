@@ -1,5 +1,6 @@
 package com.example.householdledger.data.repository
 
+import android.util.Log
 import com.example.householdledger.data.local.DairyDao
 import com.example.householdledger.data.model.DairyLog
 import io.github.jan.supabase.postgrest.Postgrest
@@ -30,17 +31,22 @@ class DairyRepository @Inject constructor(
     private var realtimeJob: Job? = null
 
     suspend fun syncDairyLogs() {
-        val profile = authRepository.currentUser.value ?: return
-        val householdId = profile.householdId ?: return
+        val profile = authRepository.currentUser.value
+        if (profile == null) { Log.w(TAG, "syncDairyLogs: no profile"); return }
+        val householdId = profile.householdId
+        if (householdId == null) { Log.w(TAG, "syncDairyLogs: no householdId"); return }
         try {
             val remote = postgrest.from("dairy_logs")
                 .select { filter { eq("household_id", householdId) } }
                 .decodeList<DairyLog>()
+            Log.d(TAG, "syncDairyLogs: fetched ${remote.size} rows for household=$householdId")
             dairyDao.insertLogs(remote)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "syncDairyLogs failed", e)
         }
     }
+
+    companion object { private const val TAG = "DairyRepo" }
 
     suspend fun addDairyLog(log: DairyLog) {
         dairyDao.insertLog(log)

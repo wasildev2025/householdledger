@@ -25,20 +25,20 @@ data class AppColors(
 val LightAppColors = AppColors(
     income = IncomeLight,
     incomeContainer = IncomeLightContainer,
-    onIncomeContainer = Color(0xFF14532D),
+    onIncomeContainer = IncomeOnContainerLight,
     expense = ExpenseLight,
     expenseContainer = ExpenseLightContainer,
-    onExpenseContainer = Color(0xFF7F1D1D),
+    onExpenseContainer = ExpenseOnContainerLight,
     warning = WarningLight
 )
 
 val DarkAppColors = AppColors(
     income = IncomeDark,
     incomeContainer = IncomeDarkContainer,
-    onIncomeContainer = Color(0xFFBBF7D0),
+    onIncomeContainer = IncomeOnContainerDark,
     expense = ExpenseDark,
     expenseContainer = ExpenseDarkContainer,
-    onExpenseContainer = Color(0xFFFECACA),
+    onExpenseContainer = ExpenseOnContainerDark,
     warning = WarningDark
 )
 

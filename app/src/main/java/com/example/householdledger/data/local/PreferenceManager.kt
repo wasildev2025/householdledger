@@ -24,6 +24,7 @@ class PreferenceManager @Inject constructor(
         val MONTHLY_BUDGET = doublePreferencesKey("monthly_budget")
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val SESSION_TOKEN = stringPreferencesKey("session_token")
+        val CYCLE_START_DAY = intPreferencesKey("cycle_start_day")
     }
 
     val darkMode: Flow<String> = context.dataStore.data.map { it[DARK_MODE] ?: "system" }
@@ -32,6 +33,9 @@ class PreferenceManager @Inject constructor(
     val biometricEnabled: Flow<Boolean> = context.dataStore.data.map { it[BIOMETRIC_ENABLED] ?: false }
     val monthlyBudget: Flow<Double> = context.dataStore.data.map { it[MONTHLY_BUDGET] ?: 0.0 }
     val onboardingComplete: Flow<Boolean> = context.dataStore.data.map { it[ONBOARDING_COMPLETE] ?: false }
+    val cycleStartDay: Flow<Int> = context.dataStore.data.map {
+        (it[CYCLE_START_DAY] ?: 1).coerceIn(1, 31)
+    }
 
     suspend fun setDarkMode(mode: String) {
         context.dataStore.edit { it[DARK_MODE] = mode }
@@ -55,6 +59,10 @@ class PreferenceManager @Inject constructor(
 
     suspend fun setOnboardingComplete(complete: Boolean) {
         context.dataStore.edit { it[ONBOARDING_COMPLETE] = complete }
+    }
+
+    suspend fun setCycleStartDay(day: Int) {
+        context.dataStore.edit { it[CYCLE_START_DAY] = day.coerceIn(1, 31) }
     }
 
     suspend fun setSessionToken(token: String?) {

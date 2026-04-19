@@ -1,5 +1,6 @@
 package com.example.householdledger.data.repository
 
+import android.util.Log
 import com.example.householdledger.data.local.MemberDao
 import com.example.householdledger.data.local.ServantDao
 import com.example.householdledger.data.model.Member
@@ -67,8 +68,10 @@ class PeopleRepository @Inject constructor(
     }
 
     suspend fun syncPeople() {
-        val profile = authRepository.currentUser.value ?: return
-        val householdId = profile.householdId ?: return
+        val profile = authRepository.currentUser.value
+        if (profile == null) { Log.w(TAG, "syncPeople: no profile"); return }
+        val householdId = profile.householdId
+        if (householdId == null) { Log.w(TAG, "syncPeople: no householdId"); return }
 
         try {
             val remoteServants = postgrest.from("servants")
@@ -78,6 +81,7 @@ class PeopleRepository @Inject constructor(
                     }
                 }
                 .decodeList<Servant>()
+            Log.d(TAG, "syncPeople: fetched ${remoteServants.size} servants for household=$householdId")
             servantDao.insertServants(remoteServants)
 
             val remoteMembers = postgrest.from("members")
@@ -87,11 +91,14 @@ class PeopleRepository @Inject constructor(
                     }
                 }
                 .decodeList<Member>()
+            Log.d(TAG, "syncPeople: fetched ${remoteMembers.size} members for household=$householdId")
             memberDao.insertMembers(remoteMembers)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "syncPeople failed", e)
         }
     }
+
+    companion object { private const val TAG = "PeopleRepo" }
 
     suspend fun addServant(name: String, role: String, phoneNumber: String?, salary: Double?, budget: Double?): String? {
         val profile = authRepository.currentUser.value ?: return null

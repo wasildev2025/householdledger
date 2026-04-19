@@ -58,10 +58,9 @@ import com.example.householdledger.ui.components.MoneyText
 import com.example.householdledger.ui.components.SectionHeader
 import com.example.householdledger.ui.theme.MoneyDisplay
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
+import com.example.householdledger.util.DateUtil
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,7 +77,8 @@ fun DairyTrackerScreen(
     val currentMonth = remember { YearMonth.now() }
     val monthLogs = remember(logs, currentMonth) {
         logs.filter { log ->
-            parseDate(log.date)?.let { YearMonth.of(it.year, it.monthValue) == currentMonth } ?: false
+            DateUtil.parseDate(log.date)
+                ?.let { YearMonth.of(it.year, it.monthValue) == currentMonth } ?: false
         }
     }
     val monthBill = monthLogs.sumOf { it.totalBill }
@@ -399,14 +399,8 @@ private fun DairyLogRow(log: DairyLog, onDelete: () -> Unit) {
 
 private fun formatQty(v: Double): String = if (v % 1.0 == 0.0) "%.0f".format(v) else "%.2f".format(v)
 
-private fun parseDate(raw: String): LocalDate? = try {
-    LocalDateTime.parse(raw).toLocalDate()
-} catch (_: DateTimeParseException) {
-    try { LocalDate.parse(raw) } catch (_: DateTimeParseException) { null }
-}
-
 private fun formatDate(raw: String): String {
-    val date = parseDate(raw) ?: return raw
+    val date = DateUtil.parseDate(raw) ?: return raw
     val today = LocalDate.now()
     return when (date) {
         today -> "Today"

@@ -1,12 +1,16 @@
 package com.example.householdledger.ui
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.householdledger.data.local.PreferenceManager
 import com.example.householdledger.data.repository.AuthRepository
 import com.example.householdledger.data.repository.CategoryRepository
-import com.example.householdledger.data.repository.PeopleRepository
 import com.example.householdledger.data.repository.DairyRepository
+import com.example.householdledger.data.repository.HouseholdRepository
+import com.example.householdledger.data.repository.MessageRepository
+import com.example.householdledger.data.repository.PeopleRepository
+import com.example.householdledger.data.repository.RecurringRepository
 import com.example.householdledger.data.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +18,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -27,7 +34,10 @@ class MainViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val categoryRepository: CategoryRepository,
     private val peopleRepository: PeopleRepository,
-    private val dairyRepository: DairyRepository
+    private val dairyRepository: DairyRepository,
+    private val recurringRepository: RecurringRepository,
+    private val messageRepository: MessageRepository,
+    private val householdRepository: HouseholdRepository
 ) : ViewModel() {
 
     val currentUser = authRepository.currentUser.stateIn(
@@ -56,19 +66,34 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             authRepository.loadProfile()
             _bootReady.value = true
-            val profile = authRepository.currentUser.value
-            if (profile?.householdId != null) {
-                transactionRepository.syncTransactions()
-                categoryRepository.syncCategories()
-                peopleRepository.syncPeople()
-                dairyRepository.syncDairyLogs()
-                categoryRepository.subscribeRealtime()
-                transactionRepository.subscribeRealtime()
-                peopleRepository.subscribeRealtime()
-                dairyRepository.subscribeRealtime()
-            }
+        }
+        // React to the profile becoming available (or changing households) and sync everything.
+        viewModelScope.launch {
+            authRepository.currentUser
+                .filterNotNull()
+                .map { it.householdId }
+                .filterNotNull()
+                .distinctUntilChanged()
+                .collect { householdId ->
+                    Log.d(TAG, "bootSync: starting for household=$householdId")
+                    householdRepository.loadHousehold()
+                    transactionRepository.syncTransactions()
+                    categoryRepository.syncCategories()
+                    peopleRepository.syncPeople()
+                    dairyRepository.syncDairyLogs()
+                    recurringRepository.syncTemplates()
+                    messageRepository.syncMessages(householdId)
+                    categoryRepository.subscribeRealtime()
+                    transactionRepository.subscribeRealtime()
+                    peopleRepository.subscribeRealtime()
+                    dairyRepository.subscribeRealtime()
+                    launch { messageRepository.subscribeToMessages(householdId) }
+                    Log.d(TAG, "bootSync: done for household=$householdId")
+                }
         }
     }
+
+    companion object { private const val TAG = "MainVM" }
 
     fun completeOnboarding() {
         viewModelScope.launch { prefs.setOnboardingComplete(true) }
@@ -81,6 +106,7 @@ class MainViewModel @Inject constructor(
             transactionRepository.unsubscribeRealtime()
             peopleRepository.unsubscribeRealtime()
             dairyRepository.unsubscribeRealtime()
+            messageRepository.unsubscribe()
         }
     }
 }

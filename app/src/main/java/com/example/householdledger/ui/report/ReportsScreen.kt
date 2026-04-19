@@ -88,7 +88,7 @@ fun ReportsScreen(
         ) {
             item {
                 MonthSelector(
-                    label = viewModel.formatMonthLabel(state.month),
+                    label = viewModel.formatCycleLabel(state.cycleStart, state.cycleEndInclusive),
                     canGoForward = state.canGoForward,
                     onPrev = { viewModel.shiftMonth(-1) },
                     onNext = { viewModel.shiftMonth(1) }
@@ -328,8 +328,8 @@ private fun SubStat(
 
 private fun todayIndexFor(state: ReportsUiState): Int? {
     val today = LocalDate.now()
-    return if (today.year == state.month.year && today.monthValue == state.month.monthValue) {
-        today.dayOfMonth - 1
+    return if (!today.isBefore(state.cycleStart) && !today.isAfter(state.cycleEndInclusive)) {
+        java.time.temporal.ChronoUnit.DAYS.between(state.cycleStart, today).toInt()
     } else null
 }
 

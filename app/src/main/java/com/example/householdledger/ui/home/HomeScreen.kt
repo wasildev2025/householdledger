@@ -60,19 +60,17 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.householdledger.ui.components.AppCard
 import com.example.householdledger.ui.components.Avatar
 import com.example.householdledger.ui.components.CategoryPill
+import com.example.householdledger.ui.components.CyclePulseHero
+import com.example.householdledger.ui.components.CycleRibbon
 import com.example.householdledger.ui.components.EmptyState
-import com.example.householdledger.ui.components.HeroCard
 import com.example.householdledger.ui.components.MoneyText
 import com.example.householdledger.ui.components.MoneyTone
 import com.example.householdledger.ui.components.SectionHeader
 import com.example.householdledger.ui.components.Skeleton
-import com.example.householdledger.ui.components.TrendChip
-import com.example.householdledger.ui.theme.MoneyBody
-import com.example.householdledger.ui.theme.MoneyDisplay
+import com.example.householdledger.ui.components.WalletPocketCard
+import com.example.householdledger.util.DateUtil
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoUnit
 
 @Composable
@@ -88,7 +86,6 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
-    var balanceVisible by remember { mutableStateOf(true) }
     var cardsIn by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { cardsIn = true }
 
@@ -98,6 +95,13 @@ fun HomeScreen(
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            item {
+                CycleRibbon(
+                    dayIndex = state.cycleDayIndex,
+                    cycleLengthDays = state.cycleLengthDays,
+                    endLabel = state.cycleEndInclusive.format(DateTimeFormatter.ofPattern("d MMM"))
+                )
+            }
             item {
                 TopBar(
                     userName = state.userName,
@@ -114,10 +118,17 @@ fun HomeScreen(
                     visible = cardsIn,
                     enter = fadeIn(tween(380)) + slideInVertically(tween(380)) { it / 4 }
                 ) {
-                    BalanceHero(
-                        state = state,
-                        balanceVisible = balanceVisible,
-                        onToggleVisibility = { balanceVisible = !balanceVisible }
+                    val daysLeft = (state.cycleLengthDays - state.cycleDayIndex - 1).coerceAtLeast(0)
+                    CyclePulseHero(
+                        cycleLabel = state.monthLabel,
+                        daysLeft = daysLeft,
+                        dayIndex = state.cycleDayIndex,
+                        cycleLengthDays = state.cycleLengthDays,
+                        expenseSoFar = state.expense,
+                        budgetCap = state.budgetCap,
+                        projectedExpense = state.projectedExpense,
+                        projectedOverrunPercent = state.projectedOverrunPercent,
+                        income = state.income
                     )
                 }
             }
@@ -130,8 +141,6 @@ fun HomeScreen(
                     )
                 }
             }
-
-            item { BudgetCard(state) }
 
             item {
                 EssentialsRow(
@@ -274,92 +283,6 @@ private fun OfflineBanner() {
 }
 
 @Composable
-private fun BalanceHero(
-    state: HomeUiState,
-    balanceVisible: Boolean,
-    onToggleVisibility: () -> Unit
-) {
-    HeroCard(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(22.dp)) {
-        Column {
-            Surface(shape = RoundedCornerShape(999.dp), color = Color.White.copy(alpha = 0.15f)) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = state.role.replaceFirstChar { it.uppercase() } + " View",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.White
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Icon(Icons.Default.KeyboardArrowDown, null,
-                        tint = Color.White, modifier = Modifier.size(16.dp))
-                }
-            }
-
-            Spacer(Modifier.height(18.dp))
-            Text("Net balance (${state.monthLabel})",
-                style = MaterialTheme.typography.labelLarge,
-                color = Color.White.copy(alpha = 0.8f))
-            Spacer(Modifier.height(4.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (balanceVisible) {
-                    MoneyText(amount = state.balance, style = MoneyDisplay, color = Color.White)
-                } else {
-                    Text("••••••", style = MoneyDisplay, color = Color.White)
-                }
-                Spacer(Modifier.width(10.dp))
-                IconButton(onClick = onToggleVisibility, modifier = Modifier.size(32.dp)) {
-                    Icon(
-                        imageVector = if (balanceVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.RemoveRedEye,
-                        contentDescription = if (balanceVisible) "Hide balance" else "Show balance",
-                        tint = Color.White.copy(alpha = 0.8f),
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(18.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(18.dp)
-            ) {
-                HeroStat("Income", state.income, state.incomeDeltaPercent, true)
-                HeroStat("Expense", state.expense, state.expenseDeltaPercent, false)
-                if (state.transfers > 0) {
-                    HeroStat("Transfers", state.transfers, 0f, true)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun HeroStat(
-    label: String,
-    amount: Double,
-    deltaPercent: Float,
-    positiveIsGood: Boolean
-) {
-    Column {
-        Text(label, style = MaterialTheme.typography.labelSmall,
-            color = Color.White.copy(alpha = 0.7f))
-        Spacer(Modifier.height(4.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            MoneyText(amount = amount,
-                style = MoneyBody.copy(fontSize = androidx.compose.ui.unit.TextUnit.Unspecified),
-                color = Color.White)
-            if (deltaPercent != 0f) {
-                Spacer(Modifier.width(8.dp))
-                TrendChip(percent = deltaPercent, positiveIsGood = positiveIsGood,
-                    surface = Color.White.copy(alpha = 0.18f), content = Color.White)
-            }
-        }
-    }
-}
-
-@Composable
 private fun HomeFilterTabs(selected: HomeFilter, onChange: (HomeFilter) -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -382,47 +305,6 @@ private fun HomeFilterTabs(selected: HomeFilter, onChange: (HomeFilter) -> Unit)
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                     color = androidx.compose.ui.graphics.Color.Unspecified
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun BudgetCard(state: HomeUiState) {
-    AppCard(contentPadding = PaddingValues(18.dp)) {
-        Column {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Monthly Budget", style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface)
-                Text("${(state.budgetUsedPercent * 100).toInt()}%",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary)
-            }
-            Spacer(Modifier.height(12.dp))
-            Box(
-                modifier = Modifier.fillMaxWidth().height(8.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(999.dp))
-            ) {
-                val clipped = state.budgetUsedPercent.coerceIn(0f, 1f)
-                Box(
-                    modifier = Modifier.fillMaxWidth(clipped).fillMaxHeight()
-                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(999.dp))
-                )
-            }
-            Spacer(Modifier.height(10.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Spent ", style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                MoneyText(amount = state.expense, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface)
-                Text("  of  ", style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                MoneyText(amount = state.budgetCap, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -510,8 +392,19 @@ private fun AiInsightCard(text: String, onTap: () -> Unit) {
 
 @Composable
 private fun WalletsRow(wallets: List<WalletSummary>) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        items(wallets, key = { it.kind + it.id }) { w -> WalletCard(w) }
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        contentPadding = PaddingValues(horizontal = 2.dp)
+    ) {
+        items(wallets, key = { it.kind + it.id }) { w ->
+            WalletPocketCard(
+                name = w.name,
+                kindLabel = w.kind,
+                monthSpend = w.monthlySpend,
+                allocation = w.allocation,
+                identityKey = w.kind + w.id
+            )
+        }
     }
 }
 
@@ -554,44 +447,6 @@ private fun UpcomingBillCard(b: UpcomingBill) {
                 color = if (urgent) MaterialTheme.colorScheme.onErrorContainer
                 else MaterialTheme.colorScheme.onSurface
             )
-        }
-    }
-}
-
-@Composable
-private fun WalletCard(w: WalletSummary) {
-    AppCard(modifier = Modifier.width(180.dp), contentPadding = PaddingValues(14.dp)) {
-        Column {
-            Text(
-                w.name,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                w.kind.replaceFirstChar { it.uppercase() },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(10.dp))
-            Text("Month spend", style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            MoneyText(amount = w.monthlySpend, style = MaterialTheme.typography.titleMedium,
-                tone = MoneyTone.Expense)
-            if (w.allocation > 0) {
-                Spacer(Modifier.height(6.dp))
-                val ratio = (w.monthlySpend / w.allocation).toFloat().coerceIn(0f, 1f)
-                Box(
-                    modifier = Modifier.fillMaxWidth().height(5.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(999.dp))
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth(ratio).fillMaxHeight()
-                            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(999.dp))
-                    )
-                }
-            }
         }
     }
 }
@@ -654,11 +509,7 @@ private fun SkeletonTransactionRow() {
 }
 
 private fun formatRelativeDate(raw: String): String {
-    val date = try {
-        LocalDateTime.parse(raw).toLocalDate()
-    } catch (_: DateTimeParseException) {
-        try { LocalDate.parse(raw) } catch (_: DateTimeParseException) { return raw }
-    }
+    val date = DateUtil.parseDate(raw) ?: return raw
     val today = LocalDate.now()
     val days = ChronoUnit.DAYS.between(date, today)
     return when {
