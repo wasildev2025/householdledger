@@ -282,42 +282,7 @@ private fun HomeTransactionCard(row: TransactionRow) {
                         letterSpacing = (-0.5).sp
                     )
                 )
-                Spacer(Modifier.height(8.dp))
-                // Status Pill (matching TransactionListScreen)
-                HomeStatusPill(txn.type)
             }
-        }
-    }
-}
-
-@Composable
-private fun HomeStatusPill(type: String) {
-    val (label, color) = when (type) {
-        "income" -> "Received" to Color(0xFF10B981)
-        "transfer" -> "Settled" to Color(0xFF3B82F6)
-        else -> "Paid" to Color(0xFF10B981) // Green for 'Paid' as in the design
-    }
-    
-    Surface(
-        shape = PillShape,
-        color = color.copy(alpha = 0.1f),
-        modifier = Modifier.height(24.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .background(color, CircleShape)
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = color
-            )
         }
     }
 }

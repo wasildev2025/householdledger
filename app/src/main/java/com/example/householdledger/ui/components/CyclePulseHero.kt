@@ -132,7 +132,8 @@ fun CyclePulseHero(
                         MoneyText(
                             amount = projectedExpense.takeIf { it > 0 } ?: expenseSoFar,
                             style = MoneyHero.copy(fontSize = androidx.compose.ui.unit.TextUnit.Unspecified),
-                            color = Color.White
+                            color = Color.White,
+                            currencySymbol = "Rs"
                         )
                         Spacer(Modifier.height(2.dp))
                         Text(
@@ -301,6 +302,14 @@ private fun PaceVerdict(overrunPercent: Float, budgetCap: Double) {
     }
 }
 
+private fun paceTone(overrunPercent: Float): PaceTone {
+    return when {
+        overrunPercent > 0.05f -> PaceTone.Over
+        overrunPercent < -0.05f -> PaceTone.Under
+        else -> PaceTone.OnTrack
+    }
+}
+
 private enum class PaceTone { OnTrack, Under, Over }
 
 @Composable
@@ -321,6 +330,7 @@ private fun MiniStat(label: String, amount: Double, modifier: Modifier = Modifie
                 fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
             ),
             color = Color.White,
+            currencySymbol = "Rs",
             modifier = Modifier.then(Modifier)
         )
     }

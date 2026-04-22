@@ -40,7 +40,7 @@ data class CategoryBreakdown(
 
 enum class TrendRange(val months: Long) { OneMonth(1), SixMonths(6), OneYear(12) }
 
-data class TrendBucket(val label: String, val income: Double, val expense: Double)
+data class TrendBucket(val label: String, val income: Double, val expense: Double, val transfers: Double)
 
 data class ReportsUiState(
     val month: YearMonth = YearMonth.now(),
@@ -281,8 +281,9 @@ class ReportsViewModel @Inject constructor(
             val txns = transactions.filter { parseDate(it.date)?.let(cycle::contains) == true }
             val inc = txns.filter { it.type == "income" }.sumOf { it.amount }
             val exp = txns.filter { it.type == "expense" }.sumOf { it.amount }
+            val trans = txns.filter { it.type == "transfer" }.sumOf { it.amount }
             val label = YearMonth.from(cycle.start).format(DateTimeFormatter.ofPattern("MMM"))
-            buckets += TrendBucket(label, inc, exp)
+            buckets += TrendBucket(label, inc, exp, trans)
         }
         return buckets
     }

@@ -1,6 +1,8 @@
 package com.example.householdledger.ui.report
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -12,15 +14,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,20 +31,22 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.householdledger.ui.components.AppCard
 import com.example.householdledger.ui.components.BarTrendChart
 import com.example.householdledger.ui.components.CategoryBar
 import com.example.householdledger.ui.components.EmptyState
+import com.example.householdledger.ui.components.LineTrendChart
+import com.example.householdledger.ui.components.MultiLineTrendChart
 import com.example.householdledger.ui.components.MoneyText
 import com.example.householdledger.ui.components.MoneyTone
 import com.example.householdledger.ui.components.SectionHeader
@@ -122,11 +125,11 @@ fun ReportsScreen(
                                 tone = MoneyTone.Expense
                             )
                         }
-                        BarTrendChart(
+                        LineTrendChart(
                             values = state.dailyExpense,
                             modifier = Modifier.fillMaxWidth(),
-                            height = 120.dp,
-                            barColor = appColors.expense,
+                            height = 160.dp,
+                            lineColor = appColors.expense,
                             highlightIndex = todayIndexFor(state)
                         )
                     }
@@ -261,12 +264,15 @@ private fun ChevronButton(
 
 @Composable
 private fun SummaryHero(state: ReportsUiState) {
-    AppCard(contentPadding = PaddingValues(20.dp)) {
+    val balanceColor = if (state.balance < 0) appColors.expense else MaterialTheme.colorScheme.onPrimaryContainer
+    val containerColor = if (state.balance < 0) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+
+    AppCard(containerColor = containerColor, contentPadding = PaddingValues(20.dp)) {
         Column {
             Text(
                 "NET BALANCE",
                 style = com.example.householdledger.ui.theme.EyebrowCaps,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (state.balance < 0) MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
             )
             Spacer(Modifier.height(8.dp))
             if (state.isLoading) {
@@ -277,7 +283,7 @@ private fun SummaryHero(state: ReportsUiState) {
                     style = com.example.householdledger.ui.theme.MoneyHero.copy(
                         fontSize = androidx.compose.ui.unit.TextUnit.Unspecified
                     ),
-                    color = if (state.balance < 0) appColors.expense else MaterialTheme.colorScheme.onBackground,
+                    color = balanceColor,
                     showSign = true
                 )
             }
@@ -291,21 +297,27 @@ private fun SummaryHero(state: ReportsUiState) {
                     amount = state.income,
                     tone = MoneyTone.Income,
                     modifier = Modifier.weight(1f),
-                    loading = state.isLoading
+                    loading = state.isLoading,
+                    onContainer = true,
+                    isPositive = state.balance >= 0
                 )
                 FlowStat(
                     label = "Expense",
                     amount = state.expense,
                     tone = MoneyTone.Expense,
                     modifier = Modifier.weight(1f),
-                    loading = state.isLoading
+                    loading = state.isLoading,
+                    onContainer = true,
+                    isPositive = state.balance >= 0
                 )
                 FlowStat(
                     label = "Transfers",
                     amount = state.transfers,
                     tone = MoneyTone.Neutral,
                     modifier = Modifier.weight(1f),
-                    loading = state.isLoading
+                    loading = state.isLoading,
+                    onContainer = true,
+                    isPositive = state.balance >= 0
                 )
             }
         }
@@ -318,13 +330,21 @@ private fun FlowStat(
     amount: Double,
     tone: MoneyTone,
     modifier: Modifier = Modifier,
-    loading: Boolean = false
+    loading: Boolean = false,
+    onContainer: Boolean = false,
+    isPositive: Boolean = true
 ) {
     val dotColor = when (tone) {
         MoneyTone.Income -> appColors.income
         MoneyTone.Expense -> appColors.expense
-        MoneyTone.Neutral -> MaterialTheme.colorScheme.onSurfaceVariant
+        MoneyTone.Neutral -> if (onContainer) {
+            if (isPositive) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+        } else MaterialTheme.colorScheme.onSurfaceVariant
     }
+    val textColor = if (onContainer) {
+        if (isPositive) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+    } else MaterialTheme.colorScheme.onSurfaceVariant
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -339,7 +359,7 @@ private fun FlowStat(
             Text(
                 label,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = textColor.copy(alpha = 0.7f)
             )
             if (loading) {
                 Skeleton(height = 18.dp)
@@ -347,7 +367,8 @@ private fun FlowStat(
                 MoneyText(
                     amount = amount,
                     tone = tone,
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = if (tone == MoneyTone.Neutral && onContainer) textColor else Color.Unspecified
                 )
             }
         }
@@ -371,7 +392,7 @@ private fun TrendCard(state: ReportsUiState, onRange: (TrendRange) -> Unit) {
                     Surface(
                         onClick = { onRange(r) },
                         shape = com.example.householdledger.ui.theme.PillShape,
-                        color = if (selected) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Transparent,
+                        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                         contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                         border = if (selected) null else androidx.compose.foundation.BorderStroke(
                             1.dp, MaterialTheme.colorScheme.outlineVariant
@@ -390,15 +411,44 @@ private fun TrendCard(state: ReportsUiState, onRange: (TrendRange) -> Unit) {
                 }
             }
             Spacer(Modifier.height(20.dp))
-            BarTrendChart(
-                values = state.trend.map { it.expense },
-                secondaryValues = state.trend.map { it.income },
+            MultiLineTrendChart(
+                incomeValues = state.trend.map { it.income },
+                expenseValues = state.trend.map { it.expense },
+                transferValues = state.trend.map { it.transfers },
                 modifier = Modifier.fillMaxWidth(),
-                height = 160.dp,
-                barColor = appColors.expense,
-                secondaryColor = appColors.income
+                height = 200.dp,
+                incomeColor = appColors.income,
+                expenseColor = appColors.expense,
+                transferColor = MaterialTheme.colorScheme.outline
             )
+            
+            Spacer(Modifier.height(12.dp))
+            TrendLegend()
         }
+    }
+}
+
+@Composable
+private fun TrendLegend() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        LegendItem("Income", appColors.income)
+        Spacer(Modifier.width(16.dp))
+        LegendItem("Expense", appColors.expense)
+        Spacer(Modifier.width(16.dp))
+        LegendItem("Transfers", MaterialTheme.colorScheme.outline)
+    }
+}
+
+@Composable
+private fun LegendItem(label: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(8.dp).background(color, CircleShape))
+        Spacer(Modifier.width(6.dp))
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

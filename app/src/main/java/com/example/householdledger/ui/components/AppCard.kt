@@ -25,8 +25,12 @@ fun AppCard(
     onClick: (() -> Unit)? = null,
     contentPadding: PaddingValues = PaddingValues(16.dp),
     tonal: Boolean = false,
-    // Using White for non-tonal cards to make them "pop" against tinted backgrounds
-    containerColor: Color = if (tonal) MaterialTheme.colorScheme.surfaceVariant else Color.White,
+    // Using surface variant or surface instead of hardcoded White for better theme adaptation
+    containerColor: Color = if (tonal) {
+        MaterialTheme.colorScheme.surfaceVariant
+    } else {
+        MaterialTheme.colorScheme.surface
+    },
     // Defaulting to null (no border) for the clean, modern look seen in the reference
     borderColor: Color? = null,
     cornerRadius: Dp = 28.dp, // Increased from 20dp for a friendlier, modern feel

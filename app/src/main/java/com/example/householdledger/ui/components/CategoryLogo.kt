@@ -22,9 +22,10 @@ import com.example.householdledger.util.resolveCategoryIcon
  * color + first-letter monogram. Unknown names fall back to the category color
  * (if any) and the provided icon, or the first letter of the name.
  *
- * No third-party brand SVGs are shipped here — these are lettered marks using
- * each brand's public primary color, which counts as nominative use, not a
- * reproduction of the trademark art.
+ * Priority:
+ * 1. Explicit iconName (user-selected icon) + colorHex
+ * 2. Brand matching (e.g. "Netflix") + Brand color
+ * 3. First letter monogram + colorHex
  */
 @Composable
 fun CategoryLogo(
@@ -34,17 +35,14 @@ fun CategoryLogo(
     iconName: String? = null,
     size: Dp = 40.dp
 ) {
-    // Preference order:
-    //   1. Known brand (YouTube, Netflix, …) → colored square with letter-mark
-    //   2. Category's own icon name (Ionicons) → Material icon on the category color
-    //   3. First letter of the name on the category color
-    //   4. fallbackIcon (transaction-type arrow) if even the name is blank
-    val brand = brandFor(name)
     val categoryIcon = iconName?.let(::resolveCategoryIcon)
+    val brand = if (categoryIcon == null) brandFor(name) else null
 
-    val color = brand?.color
+    val color = (if (categoryIcon != null) parseHex(colorHex) else null)
+        ?: brand?.color
         ?: parseHex(colorHex)
         ?: MaterialTheme.colorScheme.primary
+    
     val letter = brand?.letter ?: name.firstOrNull()?.uppercase() ?: "•"
 
     Box(
@@ -53,18 +51,18 @@ fun CategoryLogo(
         contentAlignment = Alignment.Center
     ) {
         when {
+            categoryIcon != null -> Icon(
+                imageVector = categoryIcon,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(size * 0.55f)
+            )
             brand != null -> Text(
                 letter,
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
-            )
-            categoryIcon != null -> Icon(
-                imageVector = categoryIcon,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(size * 0.55f)
             )
             fallbackIcon != null && name.isBlank() -> Icon(
                 fallbackIcon,

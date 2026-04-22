@@ -288,7 +288,10 @@ private fun MonthlyBillCard(
     onPrev: () -> Unit,
     onNext: () -> Unit
 ) {
-    AppCard(contentPadding = PaddingValues(20.dp)) {
+    AppCard(
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        contentPadding = PaddingValues(20.dp)
+    ) {
         Column {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -305,12 +308,13 @@ private fun MonthlyBillCard(
                     Text(
                         "MONTHLY DAIRY BILL",
                         style = EyebrowCaps,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
                         state.selectedMonth.format(monthHeaderFormat),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
                 MiniChevron(
@@ -326,7 +330,7 @@ private fun MonthlyBillCard(
                 style = MoneyHero.copy(
                     fontSize = androidx.compose.ui.unit.TextUnit.Unspecified
                 ),
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onPrimaryContainer
             )
             Spacer(Modifier.height(16.dp))
             Row(
@@ -338,14 +342,16 @@ private fun MonthlyBillCard(
                     value = "%.1f L".format(state.monthlyMilkQty),
                     subtitle = "%.0f/L".format(state.milkPrice),
                     dotColor = MilkColor,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    onContainer = true
                 )
                 DairyStat(
                     label = "Yogurt",
                     value = "%.1f kg".format(state.monthlyYogurtQty),
                     subtitle = "%.0f/kg".format(state.yogurtPrice),
                     dotColor = YogurtColor,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    onContainer = true
                 )
             }
         }
@@ -362,7 +368,7 @@ private fun MiniChevron(
     Surface(
         onClick = onClick,
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
         enabled = enabled,
         modifier = Modifier.size(36.dp)
     ) {
@@ -371,7 +377,7 @@ private fun MiniChevron(
                 imageVector = icon,
                 contentDescription = description,
                 tint = if (enabled) MaterialTheme.colorScheme.onSurface
-                else MaterialTheme.colorScheme.outlineVariant
+                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
             )
         }
     }
@@ -383,8 +389,12 @@ private fun DairyStat(
     value: String,
     subtitle: String,
     dotColor: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onContainer: Boolean = false
 ) {
+    val textColor = if (onContainer) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+    val mutedColor = if (onContainer) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
+
     Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
         Box(modifier = Modifier.size(8.dp).background(dotColor, CircleShape))
         Spacer(Modifier.width(10.dp))
@@ -392,13 +402,13 @@ private fun DairyStat(
             Text(
                 label.uppercase(),
                 style = EyebrowCaps,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = mutedColor
             )
-            Text(value, style = MaterialTheme.typography.titleSmall)
+            Text(value, style = MaterialTheme.typography.titleSmall, color = textColor)
             Text(
                 subtitle,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = mutedColor
             )
         }
     }
@@ -446,7 +456,7 @@ private fun LogEntryCard(
             Surface(
                 onClick = onDateClick,
                 shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -554,7 +564,7 @@ private fun LogEntryCard(
 private fun ModeToggle(selected: EntryMode, onChange: (EntryMode) -> Unit) {
     Surface(
         shape = PillShape,
-        color = MaterialTheme.colorScheme.surfaceVariant
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
     ) {
         Row(modifier = Modifier.padding(3.dp)) {
             EntryMode.entries.forEach { mode ->
@@ -645,7 +655,7 @@ private fun DairyLogRow(log: DairyLog, onClick: () -> Unit) {
     ) {
         Surface(
             shape = CircleShape,
-            color = MaterialTheme.colorScheme.primaryContainer,
+            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
             modifier = Modifier.size(40.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
@@ -770,7 +780,7 @@ private fun EditEntryDialog(
                 Surface(
                     onClick = { showDatePicker = true },
                     shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
