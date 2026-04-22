@@ -1,7 +1,7 @@
 package com.example.householdledger.ui.dairy
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.outlined.LocalDrink
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Delete
@@ -32,7 +33,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,8 +53,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -288,11 +291,32 @@ private fun MonthlyBillCard(
     onPrev: () -> Unit,
     onNext: () -> Unit
 ) {
-    AppCard(
-        containerColor = MaterialTheme.colorScheme.primaryContainer,
-        contentPadding = PaddingValues(20.dp)
+    val heroShape = RoundedCornerShape(28.dp)
+    val onHero = Color(0xFFFFFBF5)
+    Surface(
+        shape = heroShape,
+        color = Color.Transparent,
+        shadowElevation = 8.dp,
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column {
+        Box(
+            modifier = Modifier
+                .clip(heroShape)
+                .background(
+                    Brush.linearGradient(
+                        listOf(Color(0xFF1E4E68), Color(0xFF2F7A9D), Color(0xFFE8C9A0))
+                    )
+                )
+                .border(1.dp, onHero.copy(alpha = 0.12f), heroShape)
+                .padding(18.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(118.dp)
+                    .background(onHero.copy(alpha = 0.07f), CircleShape)
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -308,13 +332,13 @@ private fun MonthlyBillCard(
                     Text(
                         "MONTHLY DAIRY BILL",
                         style = EyebrowCaps,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        color = onHero.copy(alpha = 0.76f)
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
                         state.selectedMonth.format(monthHeaderFormat),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = onHero
                     )
                 }
                 MiniChevron(
@@ -330,12 +354,12 @@ private fun MonthlyBillCard(
                 style = MoneyHero.copy(
                     fontSize = androidx.compose.ui.unit.TextUnit.Unspecified
                 ),
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+                color = onHero
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(2.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 DairyStat(
                     label = "Milk",
@@ -354,6 +378,7 @@ private fun MonthlyBillCard(
                     onContainer = true
                 )
             }
+            }
         }
     }
 }
@@ -368,7 +393,8 @@ private fun MiniChevron(
     Surface(
         onClick = onClick,
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+        color = Color.White.copy(alpha = 0.14f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
         enabled = enabled,
         modifier = Modifier.size(36.dp)
     ) {
@@ -376,8 +402,7 @@ private fun MiniChevron(
             Icon(
                 imageVector = icon,
                 contentDescription = description,
-                tint = if (enabled) MaterialTheme.colorScheme.onSurface
-                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                tint = if (enabled) Color.White else Color.White.copy(alpha = 0.25f)
             )
         }
     }
@@ -395,22 +420,31 @@ private fun DairyStat(
     val textColor = if (onContainer) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
     val mutedColor = if (onContainer) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
 
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
-        Box(modifier = Modifier.size(8.dp).background(dotColor, CircleShape))
-        Spacer(Modifier.width(10.dp))
-        Column {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(18.dp))
+            .background(
+                if (onContainer) Color.White.copy(alpha = 0.10f)
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.size(8.dp).background(dotColor, CircleShape))
+            Spacer(Modifier.width(8.dp))
             Text(
                 label.uppercase(),
                 style = EyebrowCaps,
                 color = mutedColor
             )
-            Text(value, style = MaterialTheme.typography.titleSmall, color = textColor)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.labelSmall,
-                color = mutedColor
-            )
         }
+        Text(value, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold), color = textColor)
+        Text(
+            subtitle,
+            style = MaterialTheme.typography.labelSmall,
+            color = mutedColor
+        )
     }
 }
 
@@ -436,8 +470,13 @@ private fun LogEntryCard(
     onDateClick: () -> Unit,
     onSubmit: () -> Unit
 ) {
-    AppCard(contentPadding = PaddingValues(20.dp)) {
-        Column {
+    AppCard(
+        contentPadding = PaddingValues(18.dp),
+        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
+        elevation = 4.dp,
+        cornerRadius = 24.dp
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -450,31 +489,45 @@ private fun LogEntryCard(
                 )
                 ModeToggle(selected = entryMode, onChange = onModeChange)
             }
-            Spacer(Modifier.height(16.dp))
-            
-            // Date Picker Row
             Surface(
                 onClick = onDateClick,
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Outlined.CalendarToday, null, modifier = Modifier.size(18.dp), 
-                        tint = MaterialTheme.colorScheme.primary)
+                    Box(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(10.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Outlined.CalendarToday,
+                            null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
                     Spacer(Modifier.width(12.dp))
-                    Text(
-                        text = if (selectedDate == LocalDate.now()) "Today" 
-                               else selectedDate.format(DateTimeFormatter.ofPattern("EEE, d MMM yyyy")),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    Column {
+                        Text(
+                            text = "Entry date",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = if (selectedDate == LocalDate.now()) "Today"
+                            else selectedDate.format(DateTimeFormatter.ofPattern("EEE, d MMM yyyy")),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             }
-            
-            Spacer(Modifier.height(16.dp))
 
             when (entryMode) {
                 EntryMode.Quantity -> Row(
@@ -520,7 +573,6 @@ private fun LogEntryCard(
                 }
             }
 
-            Spacer(Modifier.height(18.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -535,14 +587,16 @@ private fun LogEntryCard(
                     Spacer(Modifier.height(4.dp))
                     MoneyText(
                         amount = projectedBill,
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MoneyHero.copy(
+                            fontSize = androidx.compose.ui.unit.TextUnit.Unspecified
+                        ),
                         tone = MoneyTone.Expense
                     )
                 }
                 Button(
                     onClick = onSubmit,
                     enabled = canSubmit,
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
@@ -553,7 +607,7 @@ private fun LogEntryCard(
                         contentDescription = null,
                         modifier = Modifier.padding(end = 8.dp)
                     )
-                    Text("Save entry", style = MaterialTheme.typography.titleSmall)
+                    Text("Save", style = MaterialTheme.typography.titleSmall)
                 }
             }
         }
@@ -629,16 +683,15 @@ private fun DairyHistoryCard(
     logs: List<DairyLog>,
     onEdit: (DairyLog) -> Unit
 ) {
-    AppCard(contentPadding = PaddingValues(0.dp)) {
-        Column {
-            logs.forEachIndexed { index, log ->
+    AppCard(
+        contentPadding = PaddingValues(12.dp),
+        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+        elevation = 3.dp,
+        cornerRadius = 24.dp
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            logs.forEach { log ->
                 DairyLogRow(log = log, onClick = { onEdit(log) })
-                if (index < logs.lastIndex) {
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant,
-                        modifier = Modifier.padding(start = 20.dp, end = 20.dp)
-                    )
-                }
             }
         }
     }
@@ -646,55 +699,204 @@ private fun DairyHistoryCard(
 
 @Composable
 private fun DairyLogRow(log: DairyLog, onClick: () -> Unit) {
-    Row(
+    val hasMilk = log.milkQty > 0
+    val hasYogurt = log.yogurtQty > 0
+    val title = when {
+        hasMilk && hasYogurt -> "Milk & Yogurt"
+        hasMilk -> "Milk delivery"
+        hasYogurt -> "Yogurt delivery"
+        else -> "Dairy log"
+    }
+    val accent = when {
+        hasMilk && hasYogurt -> Color(0xFF6AA7C8)
+        hasMilk -> MilkColor
+        hasYogurt -> YogurtColor
+        else -> MaterialTheme.colorScheme.primary
+    }
+
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.32f)
+        )
+    ) {
+        Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 14.dp),
+                .padding(horizontal = 14.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-            modifier = Modifier.size(40.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = "D",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        Brush.linearGradient(
+                            listOf(accent.copy(alpha = 0.92f), accent.copy(alpha = 0.56f))
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .padding(1.dp)
+                        .clip(RoundedCornerShape(15.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = 0.22f),
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.10f)
+                                )
+                            )
+                        )
                 )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 4.dp)
+                        .size(width = 26.dp, height = 8.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color.White.copy(alpha = 0.18f))
+                )
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color.White.copy(alpha = 0.16f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (hasMilk && hasYogurt) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Outlined.LocalDrink,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(Color.White.copy(alpha = 0.95f))
+                            )
+                        }
+                    } else if (hasMilk) {
+                        Icon(
+                            Icons.Outlined.LocalDrink,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    } else if (hasYogurt) {
+                        Box(
+                            modifier = Modifier
+                                .size(14.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color.White.copy(alpha = 0.95f))
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.95f))
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = formatLogDate(log.date),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        MoneyText(
+                            amount = log.totalBill,
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            tone = MoneyTone.Expense,
+                            showSign = false
+                        )
+                        Text(
+                            text = "Tap to edit",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (hasMilk) {
+                        DairyMetaChip(
+                            text = "%.2f L milk".format(log.milkQty),
+                            tint = MilkColor
+                        )
+                    }
+                    if (hasYogurt) {
+                        DairyMetaChip(
+                            text = "%.2f kg yogurt".format(log.yogurtQty),
+                            tint = YogurtColor
+                        )
+                    }
+                }
             }
         }
-        Spacer(Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "Dairy",
-                style = MaterialTheme.typography.titleSmall
-            )
-            Text(
-                text = formatLogDate(log.date),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Column(horizontalAlignment = Alignment.End) {
-            MoneyText(
-                amount = log.totalBill,
-                style = MaterialTheme.typography.titleSmall,
-                tone = MoneyTone.Expense,
-                showSign = true
-            )
-            Text(
-                text = buildString {
-                    if (log.milkQty > 0) append("%.2fL".format(log.milkQty))
-                    if (log.milkQty > 0 && log.yogurtQty > 0) append(" · ")
-                    if (log.yogurtQty > 0) append("%.2fkg".format(log.yogurtQty))
-                },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+    }
+}
+
+@Composable
+private fun DairyMetaChip(
+    text: String,
+    tint: Color
+) {
+    val chipBackground = when (tint) {
+        MilkColor -> Color(0xFFD7ECFA)
+        YogurtColor -> Color(0xFFF2DFC8)
+        else -> tint.copy(alpha = 0.22f)
+    }
+    val chipText = when (tint) {
+        MilkColor -> Color(0xFF185D86)
+        YogurtColor -> Color(0xFF8A5C22)
+        else -> tint
+    }
+    Surface(
+        shape = PillShape,
+        color = chipBackground
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+            color = chipText,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+        )
     }
 }
 

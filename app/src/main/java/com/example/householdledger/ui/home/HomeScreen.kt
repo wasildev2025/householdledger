@@ -49,6 +49,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -450,6 +452,19 @@ private fun EssentialsRow(
 
 @Composable
 private fun EssentialTile(label: String, icon: ImageVector, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val (topColor, bottomColor, iconTint) = when (label) {
+        "Dairy" -> Triple(Color(0xFF8ED7FF), Color(0xFF2D8CFF), Color(0xFFFFFFFF))
+        "Chat" -> Triple(Color(0xFFFFC97A), Color(0xFFE8833A), Color(0xFFFFFFFF))
+        "People" -> Triple(Color(0xFFA7F3D0), Color(0xFF0F766E), Color(0xFFFFFFFF))
+        "Categories" -> Triple(Color(0xFFF6B3D7), Color(0xFFBE185D), Color(0xFFFFFFFF))
+        "Recurring" -> Triple(Color(0xFFD8C4FF), Color(0xFF6D28D9), Color(0xFFFFFFFF))
+        else -> Triple(
+            MaterialTheme.colorScheme.primaryContainer,
+            MaterialTheme.colorScheme.primary,
+            MaterialTheme.colorScheme.onPrimary
+        )
+    }
+
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(18.dp),
@@ -467,16 +482,52 @@ private fun EssentialTile(label: String, icon: ImageVector, modifier: Modifier =
         ) {
             Box(
                 modifier = Modifier
-                    .size(34.dp)
-                    .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(10.dp)),
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(topColor, bottomColor)
+                        )
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    icon,
-                    null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(18.dp)
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .padding(1.dp)
+                        .clip(RoundedCornerShape(13.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = 0.22f),
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.10f)
+                                )
+                            )
+                        )
                 )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 4.dp)
+                        .size(width = 24.dp, height = 8.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color.White.copy(alpha = 0.20f))
+                )
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color.White.copy(alpha = 0.16f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        icon,
+                        null,
+                        tint = iconTint,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
             Text(
                 label,
