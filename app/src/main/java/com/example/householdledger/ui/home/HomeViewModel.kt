@@ -136,6 +136,8 @@ class HomeViewModel @Inject constructor(
         authRepository.currentUser,
         filter,
         householdRepository.household,
+        preferenceManager.monthlyBudget,
+        preferenceManager.cycleStartDay,
         aiInsight,
         isOffline,
         upcomingBillsFlow
@@ -147,12 +149,14 @@ class HomeViewModel @Inject constructor(
         val user = arr[4] as com.example.householdledger.data.model.UserProfile?
         val f = arr[5] as HomeFilter
         val household = arr[6] as Household?
-        val insight = arr[7] as String?
-        val offline = arr[8] as Boolean
-        @Suppress("UNCHECKED_CAST") val upcoming = arr[9] as List<UpcomingBill>
+        val prefBudget = arr[7] as Double
+        val prefCycleStartDay = arr[8] as Int
+        val insight = arr[9] as String?
+        val offline = arr[10] as Boolean
+        @Suppress("UNCHECKED_CAST") val upcoming = arr[11] as List<UpcomingBill>
 
-        val cycleStartDay = household?.cycleStartDay ?: 1
-        val userBudget = household?.monthlyBudget ?: 0.0
+        val cycleStartDay = prefCycleStartDay.takeIf { it > 0 } ?: (household?.cycleStartDay ?: 1)
+        val userBudget = prefBudget.takeIf { it > 0 } ?: (household?.monthlyBudget ?: 0.0)
 
         val now = LocalDate.now()
         val thisCycle = Cycle.current(now, cycleStartDay)

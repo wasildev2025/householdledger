@@ -404,13 +404,29 @@ private fun EssentialsRow(
     onPeople: () -> Unit,
     isAdmin: Boolean
 ) {
-    AppCard(contentPadding = PaddingValues(14.dp)) {
+    AppCard(
+        contentPadding = PaddingValues(16.dp),
+        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+        elevation = 4.dp,
+        cornerRadius = 24.dp
+    ) {
         Column {
-            Text("Household Essentials", style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface)
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.fillMaxWidth()) {
+            Text(
+                "Household Essentials",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Quick access to your daily household tools.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(14.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 EssentialTile("Dairy", Icons.Outlined.LocalDrink, Modifier.weight(1f), onDairy)
                 EssentialTile("Chat", Icons.Outlined.ChatBubbleOutline, Modifier.weight(1f), onChat)
                 if (isAdmin) {
@@ -420,8 +436,10 @@ private fun EssentialsRow(
             }
             if (isAdmin) {
                 Spacer(Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     EssentialTile("Recurring", Icons.Outlined.Repeat, Modifier.weight(1f), onRecurring)
                     Spacer(Modifier.weight(3f))
                 }
@@ -434,19 +452,38 @@ private fun EssentialsRow(
 private fun EssentialTile(label: String, icon: ImageVector, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = modifier.height(78.dp)
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        ),
+        modifier = modifier.height(96.dp)
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxSize().padding(8.dp)
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxSize().padding(12.dp)
         ) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-            Spacer(Modifier.height(4.dp))
-            Text(label, style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    icon,
+                    null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2
+            )
         }
     }
 }

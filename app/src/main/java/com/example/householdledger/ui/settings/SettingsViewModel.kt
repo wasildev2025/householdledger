@@ -75,13 +75,13 @@ class SettingsViewModel @Inject constructor(
     fun setMonthlyBudget(value: Double) { 
         viewModelScope.launch { 
             prefs.setMonthlyBudget(value)
-            householdRepository.updateCycleSettings(state.value.cycleStartDay, value)
+            householdRepository.updateCycleSettings(prefs.cycleStartDay.first(), value)
         }
     }
     fun setCycleStartDay(value: Int) { 
         viewModelScope.launch { 
             prefs.setCycleStartDay(value)
-            householdRepository.updateCycleSettings(value, state.value.monthlyBudget)
+            householdRepository.updateCycleSettings(value, prefs.monthlyBudget.first())
         }
     }
 

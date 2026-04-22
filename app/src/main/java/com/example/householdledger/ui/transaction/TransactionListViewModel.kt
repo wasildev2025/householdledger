@@ -2,8 +2,9 @@ package com.example.householdledger.ui.transaction
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.householdledger.data.model.Category
 import com.example.householdledger.data.model.Transaction
+import com.example.householdledger.data.model.Category
+import com.example.householdledger.data.model.UserProfile
 import com.example.householdledger.data.local.PreferenceManager
 import com.example.householdledger.data.repository.AuthRepository
 import com.example.householdledger.data.repository.CategoryRepository
@@ -78,14 +79,24 @@ class TransactionListViewModel @Inject constructor(
     private val visibleCount = MutableStateFlow(PAGE_SIZE)
     private val refreshing = MutableStateFlow(false)
 
-    val state: StateFlow<TxnListState> = combineSix(
+    val state: StateFlow<TxnListState> = combineN(
         transactionRepository.transactions,
         categoryRepository.categories,
         authRepository.currentUser,
         filter,
         personFilter,
-        preferenceManager.cycleStartDay
-    ) { txns, cats, user, f, pf, cycleStartDay ->
+        preferenceManager.cycleStartDay,
+        visibleCount,
+        refreshing
+    ) { values ->
+        val txns = values[0] as List<Transaction>
+        val cats = values[1] as List<Category>
+        val user = values[2] as UserProfile?
+        val f = values[3] as TxnFilter
+        val pf = values[4] as PersonFilter
+        val cycleStartDay = values[5] as Int
+        val count = values[6] as Int
+        val isRefreshing = values[7] as Boolean
         val categoryById = cats.associateBy { it.id }
 
         // Role-scoped pool: a servant only sees their own rows; a member only
@@ -111,7 +122,6 @@ class TransactionListViewModel @Inject constructor(
             PersonFilter.Members -> filteredType.filter { it.memberId != null }
         }.sortedByDescending { parseDate(it.date) ?: LocalDate.MIN }
 
-        val count = visibleCount.value
         val items = filtered.take(count).map { TxnListRow(it, it.categoryId?.let(categoryById::get)) }
 
         val sections = buildDaySections(items)
@@ -157,7 +167,7 @@ class TransactionListViewModel @Inject constructor(
             filter = f,
             personFilter = pf,
             visibleCount = count,
-            isRefreshing = refreshing.value,
+            isRefreshing = isRefreshing,
             isAdmin = user?.role == "admin",
             totalMatching = filtered.size
         )
@@ -229,21 +239,12 @@ class TransactionListViewModel @Inject constructor(
 }
 
 @Suppress("UNCHECKED_CAST")
-private fun <T1, T2, T3, T4, T5, T6, R> combineSix(
-    f1: Flow<T1>,
-    f2: Flow<T2>,
-    f3: Flow<T3>,
-    f4: Flow<T4>,
-    f5: Flow<T5>,
-    f6: Flow<T6>,
-    transform: suspend (T1, T2, T3, T4, T5, T6) -> R
-): Flow<R> = combine(f1, f2, f3, f4, f5, f6) { values ->
-    transform(
-        values[0] as T1,
-        values[1] as T2,
-        values[2] as T3,
-        values[3] as T4,
-        values[4] as T5,
-        values[5] as T6
-    )
+private fun <R> combineN(
+    vararg flows: Flow<*>,
+    transform: suspend (Array<Any?>) -> R
+): Flow<R> {
+    val typed: Array<Flow<Any?>> = flows.map { it as Flow<Any?> }.toTypedArray()
+    return combine(*typed) { values: Array<Any?> ->
+        transform(values)
+    }
 }

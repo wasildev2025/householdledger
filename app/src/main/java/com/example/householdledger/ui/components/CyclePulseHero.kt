@@ -4,10 +4,10 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,15 +16,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -69,6 +70,8 @@ fun CyclePulseHero(
     val spendRatio = if (budgetCap > 0) (expenseSoFar / budgetCap).toFloat().coerceIn(0f, 1f) else 0f
     val projectedRatio = if (budgetCap > 0) (projectedExpense / budgetCap).toFloat().coerceIn(0f, 1.4f) else 0f
     val dayRatio = if (cycleLengthDays > 0) (dayIndex.toFloat() / cycleLengthDays).coerceIn(0f, 1f) else 0f
+    val heroShape = RoundedCornerShape(28.dp)
+    val heroText = Color(0xFFFFFBF5)
 
     val ringAnim = remember { Animatable(0f) }
     val projectedAnim = remember { Animatable(0f) }
@@ -81,19 +84,21 @@ fun CyclePulseHero(
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = heroShape,
         color = Color.Transparent
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .clip(heroShape)
                 .background(
                     brush = Brush.linearGradient(
-                        colors = listOf(PulseGradientTop, PulseGradientMid, PulseGradientBottom)
+                        colors = listOf(PulseGradientBottom, PulseGradientMid, PulseGradientTop)
                     ),
-                    shape = RoundedCornerShape(28.dp)
+                    shape = heroShape
                 )
-                .padding(24.dp)
+                .border(1.dp, heroText.copy(alpha = 0.10f), heroShape)
+                .padding(20.dp)
         ) {
             Column {
                 Row(
@@ -101,57 +106,60 @@ fun CyclePulseHero(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Eyebrow(text = "CYCLE PULSE", color = Color.White.copy(alpha = 0.82f))
+                    Eyebrow(text = "CYCLE PULSE", color = heroText.copy(alpha = 0.8f))
                     DaysLeftPill(daysLeft)
                 }
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(10.dp))
                 Text(
                     cycleLabel,
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.78f)
+                    color = heroText.copy(alpha = 0.74f)
                 )
 
-                Spacer(Modifier.height(18.dp))
-                Box(
+                Spacer(Modifier.height(16.dp))
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    PulseRing(
-                        progress = ringAnim.value,
-                        projectedProgress = projectedAnim.value,
-                        dayMarkerRatio = dayRatio,
-                        modifier = Modifier.size(192.dp)
-                    )
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        PulseRing(
+                            progress = ringAnim.value,
+                            projectedProgress = projectedAnim.value,
+                            dayMarkerRatio = dayRatio,
+                            modifier = Modifier.size(156.dp)
+                        )
+                    }
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Text(
                             text = "Projected total",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.8f)
+                            color = heroText.copy(alpha = 0.76f)
                         )
-                        Spacer(Modifier.height(2.dp))
                         MoneyText(
                             amount = projectedExpense.takeIf { it > 0 } ?: expenseSoFar,
                             style = MoneyHero.copy(fontSize = androidx.compose.ui.unit.TextUnit.Unspecified),
-                            color = Color.White,
+                            color = heroText,
                             currencySymbol = "Rs"
                         )
-                        Spacer(Modifier.height(2.dp))
                         Text(
-                            // Projection = (spend so far / day index) × cycle length.
-                            // Call that out so users understand why it's larger than actual.
-                            text = "at current pace",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.68f)
+                            text = "At current pace",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = heroText.copy(alpha = 0.66f)
                         )
+                        PaceVerdict(projectedOverrunPercent, budgetCap)
                     }
                 }
 
-                Spacer(Modifier.height(18.dp))
-                PaceVerdict(projectedOverrunPercent, budgetCap)
-
-                Spacer(Modifier.height(18.dp))
-                // Always render all three flow stats so users can see transfers is really 0
-                // (previously it was hidden when == 0, which looked like the feature was missing).
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider(color = heroText.copy(alpha = 0.14f))
+                Spacer(Modifier.height(14.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -183,13 +191,13 @@ private fun DaysLeftPill(daysLeft: Int) {
     }
     Surface(
         shape = PillShape,
-        color = Color.White.copy(alpha = 0.18f)
+        color = Color.White.copy(alpha = 0.14f)
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelMedium,
             color = Color.White,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
         )
     }
 }
@@ -209,7 +217,7 @@ private fun PulseRing(
 
         // Track
         drawArc(
-            color = Color.White.copy(alpha = 0.18f),
+            color = Color.White.copy(alpha = 0.14f),
             startAngle = -90f,
             sweepAngle = 360f,
             useCenter = false,
@@ -221,7 +229,7 @@ private fun PulseRing(
         // Projected arc (ghost) — drawn first so the solid sits above it
         if (projectedProgress > 0f && projectedProgress > progress) {
             drawArc(
-                color = Color.White.copy(alpha = 0.45f),
+                color = Color.White.copy(alpha = 0.32f),
                 startAngle = -90f,
                 sweepAngle = 360f * projectedProgress,
                 useCenter = false,
@@ -299,14 +307,6 @@ private fun PaceVerdict(overrunPercent: Float, budgetCap: Double) {
                 color = Color.White
             )
         }
-    }
-}
-
-private fun paceTone(overrunPercent: Float): PaceTone {
-    return when {
-        overrunPercent > 0.05f -> PaceTone.Over
-        overrunPercent < -0.05f -> PaceTone.Under
-        else -> PaceTone.OnTrack
     }
 }
 
