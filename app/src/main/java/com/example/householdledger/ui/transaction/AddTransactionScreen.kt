@@ -30,8 +30,11 @@ import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +42,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -57,9 +62,12 @@ import com.example.householdledger.data.model.Transaction
 import com.example.householdledger.ui.components.MoneyText
 import com.example.householdledger.ui.components.MoneyTone
 import com.example.householdledger.ui.theme.MoneyDisplay
+import com.example.householdledger.util.DateUtil
 import kotlinx.coroutines.launch
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private enum class TxnType(val key: String, val label: String, val icon: ImageVector) {
@@ -128,6 +136,7 @@ data class TransferPrefill(
  * Pass [editing] to operate on an existing transaction — the form prefills from
  * it, save becomes an update, and a Delete button appears.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTransactionSheet(
     onClose: () -> Unit,
@@ -165,6 +174,11 @@ fun AddTransactionSheet(
         mutableStateOf<Recipient?>(null) // resolved once data arrives
     }
 
+    var selectedDate by remember(keying) {
+        mutableStateOf(editing?.date?.let { DateUtil.parseDate(it) } ?: LocalDate.now())
+    }
+    var showDatePicker by remember { mutableStateOf(false) }
+
     val categories by viewModel.categories.collectAsState()
     val servants by viewModel.servants.collectAsState()
     val members by viewModel.members.collectAsState()
@@ -196,7 +210,10 @@ fun AddTransactionSheet(
     val amountDouble = amount.toDoubleOrNull() ?: 0.0
     val transferNeedsRecipient = type == TxnType.Transfer && recipient == null
     val canSubmit = amountDouble > 0 && !isSaving && !transferNeedsRecipient
-    val todayLabel = remember { LocalDate.now().format(DateTimeFormatter.ofPattern("d MMM yyyy")) }
+    val dateLabel = remember(selectedDate) { 
+        if (selectedDate == LocalDate.now()) "Today" 
+        else selectedDate.format(DateTimeFormatter.ofPattern("d MMM yyyy")) 
+    }
 
     Column(
         modifier = Modifier
@@ -389,8 +406,8 @@ fun AddTransactionSheet(
             }
             ChipButton(
                 icon = Icons.Outlined.CalendarToday,
-                label = todayLabel,
-                onClick = {},
+                label = dateLabel,
+                onClick = { showDatePicker = true },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -429,7 +446,7 @@ fun AddTransactionSheet(
 
         Button(
             onClick = {
-                val now = LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME)
+                val isoDate = selectedDate.atStartOfDay().format(DateTimeFormatter.ISO_DATE_TIME)
                 val sid = (recipient as? Recipient.ServantR)?.id
                 val mid = (recipient as? Recipient.MemberR)?.id
                 // Description falls back to the category name if the user didn't type one,
@@ -444,7 +461,7 @@ fun AddTransactionSheet(
                         description = finalDescription,
                         type = type.key,
                         categoryId = selectedCategory?.id,
-                        date = now,
+                        date = isoDate,
                         servantId = sid ?: editing.servantId,
                         memberId = mid ?: editing.memberId
                     )
@@ -454,7 +471,7 @@ fun AddTransactionSheet(
                         description = finalDescription,
                         type = type.key,
                         categoryId = selectedCategory?.id,
-                        date = now,
+                        date = isoDate,
                         servantId = sid,
                         memberId = mid
                     )
@@ -507,6 +524,28 @@ fun AddTransactionSheet(
                     style = MaterialTheme.typography.titleSmall
                 )
             }
+        }
+    }
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = selectedDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        selectedDate = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
+                    }
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }

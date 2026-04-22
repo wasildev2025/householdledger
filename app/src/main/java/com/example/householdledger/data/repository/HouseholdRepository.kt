@@ -46,6 +46,21 @@ class HouseholdRepository @Inject constructor(
         }
     }
 
+    suspend fun updateCycleSettings(startDay: Int, budget: Double) {
+        val profile = authRepository.currentUser.value ?: return
+        val householdId = profile.householdId ?: return
+        try {
+            postgrest.from("households").update(
+                mapOf("cycle_start_day" to startDay, "monthly_budget" to budget)
+            ) {
+                filter { eq("id", householdId) }
+            }
+            loadHousehold()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     suspend fun loadHousehold() {
         val user = authRepository.getSupabaseUser() ?: return
         val profile = authRepository.currentUser.value ?: return

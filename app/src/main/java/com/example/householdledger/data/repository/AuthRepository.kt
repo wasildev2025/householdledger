@@ -5,6 +5,7 @@ import com.example.householdledger.BuildConfig
 import com.example.householdledger.data.model.UserProfile
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.providers.builtin.Email
+import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.from
 import kotlinx.serialization.json.JsonObject
@@ -15,6 +16,11 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -25,6 +31,25 @@ class AuthRepository @Inject constructor(
 ) {
     private val _currentUser = MutableStateFlow<UserProfile?>(null)
     val currentUser: StateFlow<UserProfile?> = _currentUser
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    init {
+        scope.launch {
+            auth.sessionStatus.collectLatest { status ->
+                Log.d(TAG, "Session status changed: $status")
+                when (status) {
+                    is SessionStatus.Authenticated -> {
+                        loadProfile()
+                    }
+                    is SessionStatus.NotAuthenticated -> {
+                        _currentUser.value = null
+                    }
+                    else -> Unit
+                }
+            }
+        }
+    }
 
     fun getSupabaseUser() = auth.currentUserOrNull()
 

@@ -3,10 +3,12 @@ package com.example.householdledger.ui.report
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.householdledger.data.model.Category
+import com.example.householdledger.data.model.Household
 import com.example.householdledger.data.model.Transaction
 import com.example.householdledger.data.local.PreferenceManager
 import com.example.householdledger.data.repository.AuthRepository
 import com.example.householdledger.data.repository.CategoryRepository
+import com.example.householdledger.data.repository.HouseholdRepository
 import com.example.householdledger.data.repository.TransactionRepository
 import com.example.householdledger.util.Cycle
 import com.example.householdledger.util.DateUtil
@@ -75,9 +77,10 @@ private data class InsightResponse(
 
 @HiltViewModel
 class ReportsViewModel @Inject constructor(
-    transactionRepository: TransactionRepository,
-    categoryRepository: CategoryRepository,
+    private val transactionRepository: TransactionRepository,
+    private val categoryRepository: CategoryRepository,
     private val authRepository: AuthRepository,
+    private val householdRepository: HouseholdRepository,
     private val supabaseClient: SupabaseClient,
     private val preferenceManager: PreferenceManager
 ) : ViewModel() {
@@ -89,18 +92,16 @@ class ReportsViewModel @Inject constructor(
     private val aiInsight = MutableStateFlow<String?>(null)
     private val aiLoading = MutableStateFlow(false)
 
-    private val cachedCycleStartDay: StateFlow<Int> = preferenceManager.cycleStartDay
-        .stateIn(viewModelScope, SharingStarted.Eagerly, 1)
-
     val uiState: StateFlow<ReportsUiState> = combineSix(
         transactionRepository.transactions,
         categoryRepository.categories,
         selectedCycleAnchor,
         trendRange,
         aiInsight,
-        preferenceManager.cycleStartDay
-    ) { transactions, categories, anchor, range, insight, cycleStartDay ->
+        householdRepository.household
+    ) { transactions, categories, anchor, range, insight, household ->
         val categoryById = categories.associateBy { it.id }
+        val cycleStartDay = household?.cycleStartDay ?: 1
         val cycle = Cycle.current(anchor, cycleStartDay)
         val prevCycle = Cycle.previous(anchor, cycleStartDay)
         val lengthDays = java.time.temporal.ChronoUnit.DAYS.between(cycle.start, cycle.endExclusive).toInt()
@@ -166,7 +167,8 @@ class ReportsViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ReportsUiState())
 
     fun shiftMonth(delta: Int) {
-        val startDay = cachedCycleStartDay.value
+        val household = householdRepository.household.value
+        val startDay = household?.cycleStartDay ?: 1
         val cur = Cycle.current(selectedCycleAnchor.value, startDay)
         val target = cur.start.plusMonths(delta.toLong())
         val today = LocalDate.now()

@@ -22,13 +22,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -41,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -66,8 +69,9 @@ import com.example.householdledger.ui.theme.EyebrowCaps
 import com.example.householdledger.ui.theme.MoneyHero
 import com.example.householdledger.ui.theme.PillShape
 import com.example.householdledger.util.DateUtil
+import java.time.Instant
 import java.time.LocalDate
-import java.time.YearMonth
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private val MilkColor = Color(0xFF5EA9D6)
@@ -101,6 +105,9 @@ fun DairyScreen(
     var yogurtQty by remember { mutableDoubleStateOf(0.0) }
     var milkAmount by remember { mutableStateOf("") }
     var yogurtAmount by remember { mutableStateOf("") }
+
+    var logDate by remember { mutableStateOf(LocalDate.now()) }
+    var showDatePicker by remember { mutableStateOf(false) }
 
     var priceDialog by remember { mutableStateOf(false) }
     var editingLog by remember { mutableStateOf<DairyLog?>(null) }
@@ -164,9 +171,6 @@ fun DairyScreen(
                 )
             }
 
-            // Logging card is only shown when viewing the current month OR any earlier
-            // month (so historical entries can be backfilled). Future months hidden
-            // because canGoForward already blocks navigation there.
             item {
                 LogEntryCard(
                     entryMode = entryMode,
@@ -183,8 +187,10 @@ fun DairyScreen(
                     yogurtPrice = state.yogurtPrice,
                     projectedBill = projectedBill,
                     canSubmit = canSubmit,
+                    selectedDate = logDate,
+                    onDateClick = { showDatePicker = true },
                     onSubmit = {
-                        viewModel.addLog(effectiveMilk, effectiveYogurt)
+                        viewModel.addLogWithDate(effectiveMilk, effectiveYogurt, logDate.toString())
                         milkQty = 0.0
                         yogurtQty = 0.0
                         milkAmount = ""
@@ -193,7 +199,13 @@ fun DairyScreen(
                 )
             }
 
-            item { SectionHeader(title = "History") }
+            item {
+                SectionHeader(
+                    title = "History",
+                    actionLabel = "View all",
+                    onActionClick = { /* No-op for now as per design */ }
+                )
+            }
 
             if (state.monthLogs.isEmpty()) {
                 item {
@@ -213,6 +225,28 @@ fun DairyScreen(
                     )
                 }
             }
+        }
+    }
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = logDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        logDate = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
+                    }
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 
@@ -388,6 +422,8 @@ private fun LogEntryCard(
     yogurtPrice: Double,
     projectedBill: Double,
     canSubmit: Boolean,
+    selectedDate: LocalDate,
+    onDateClick: () -> Unit,
     onSubmit: () -> Unit
 ) {
     AppCard(contentPadding = PaddingValues(20.dp)) {
@@ -405,6 +441,31 @@ private fun LogEntryCard(
                 ModeToggle(selected = entryMode, onChange = onModeChange)
             }
             Spacer(Modifier.height(16.dp))
+            
+            // Date Picker Row
+            Surface(
+                onClick = onDateClick,
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Outlined.CalendarToday, null, modifier = Modifier.size(18.dp), 
+                        tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        text = if (selectedDate == LocalDate.now()) "Today" 
+                               else selectedDate.format(DateTimeFormatter.ofPattern("EEE, d MMM yyyy")),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+            
+            Spacer(Modifier.height(16.dp))
+
             when (entryMode) {
                 EntryMode.Quantity -> Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -496,7 +557,7 @@ private fun ModeToggle(selected: EntryMode, onChange: (EntryMode) -> Unit) {
         color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Row(modifier = Modifier.padding(3.dp)) {
-            EntryMode.values().forEach { mode ->
+            EntryMode.entries.forEach { mode ->
                 val isSel = mode == selected
                 Surface(
                     onClick = { onChange(mode) },
@@ -582,27 +643,48 @@ private fun DairyLogRow(log: DairyLog, onClick: () -> Unit) {
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primaryContainer,
+            modifier = Modifier.size(40.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = "D",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
+        Spacer(Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = formatLogDate(log.date),
+                text = "Dairy",
                 style = MaterialTheme.typography.titleSmall
             )
-            Spacer(Modifier.height(2.dp))
+            Text(
+                text = formatLogDate(log.date),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            MoneyText(
+                amount = log.totalBill,
+                style = MaterialTheme.typography.titleSmall,
+                tone = MoneyTone.Expense,
+                showSign = true
+            )
             Text(
                 text = buildString {
-                    if (log.milkQty > 0) append("Milk %.2fL".format(log.milkQty))
-                    if (log.milkQty > 0 && log.yogurtQty > 0) append("  ·  ")
-                    if (log.yogurtQty > 0) append("Yogurt %.2fkg".format(log.yogurtQty))
+                    if (log.milkQty > 0) append("%.2fL".format(log.milkQty))
+                    if (log.milkQty > 0 && log.yogurtQty > 0) append(" · ")
+                    if (log.yogurtQty > 0) append("%.2fkg".format(log.yogurtQty))
                 },
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        MoneyText(
-            amount = log.totalBill,
-            style = MaterialTheme.typography.titleSmall,
-            tone = MoneyTone.Expense
-        )
     }
 }
 
@@ -661,6 +743,7 @@ private fun PriceEditorDialog(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditEntryDialog(
     log: DairyLog,
@@ -672,15 +755,34 @@ private fun EditEntryDialog(
 ) {
     var milk by remember { mutableStateOf(log.milkQty.toString()) }
     var yogurt by remember { mutableStateOf(log.yogurtQty.toString()) }
+    var date by remember { mutableStateOf(DateUtil.parseDate(log.date) ?: LocalDate.now()) }
+    var showDatePicker by remember { mutableStateOf(false) }
+
     val milkValue = milk.toDoubleOrNull() ?: 0.0
     val yogurtValue = yogurt.toDoubleOrNull() ?: 0.0
     val total = (milkValue * milkPrice) + (yogurtValue * yogurtPrice)
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(formatLogDate(log.date)) },
+        title = { Text("Edit Entry") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Surface(
+                    onClick = { showDatePicker = true },
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Outlined.CalendarToday, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Text(date.format(DateTimeFormatter.ofPattern("EEE, d MMM yyyy")))
+                    }
+                }
+
                 OutlinedTextField(
                     value = milk,
                     onValueChange = { milk = it.filter { c -> c.isDigit() || c == '.' } },
@@ -710,7 +812,7 @@ private fun EditEntryDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(milkValue, yogurtValue, log.date) }) { Text("Save") }
+            TextButton(onClick = { onSave(milkValue, yogurtValue, date.toString()) }) { Text("Save") }
         },
         dismissButton = {
             Row {
@@ -726,4 +828,26 @@ private fun EditEntryDialog(
             }
         }
     )
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        date = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
+                    }
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 }

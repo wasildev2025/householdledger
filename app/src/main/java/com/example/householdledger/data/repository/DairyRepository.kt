@@ -40,6 +40,9 @@ class DairyRepository @Inject constructor(
                 .select { filter { eq("household_id", householdId) } }
                 .decodeList<DairyLog>()
             Log.d(TAG, "syncDairyLogs: fetched ${remote.size} rows for household=$householdId")
+            
+            // Fix for #6: Clear local logs and replace with remote to handle deletions
+            dairyDao.clearAll()
             dairyDao.insertLogs(remote)
         } catch (e: Exception) {
             Log.e(TAG, "syncDairyLogs failed", e)

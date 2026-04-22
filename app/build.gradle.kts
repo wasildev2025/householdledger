@@ -105,6 +105,9 @@ dependencies {
     // Splash screen
     implementation(libs.androidx.core.splashscreen)
 
+    // Settings for Supabase persistence
+    implementation(libs.multiplatform.settings)
+
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.mockk)

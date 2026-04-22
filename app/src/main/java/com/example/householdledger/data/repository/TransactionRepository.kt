@@ -86,6 +86,9 @@ class TransactionRepository @Inject constructor(
                 .decodeList<Transaction>()
 
             Log.d(TAG, "syncTransactions: fetched ${remoteTransactions.size} rows for household=$householdId role=${profile.role}")
+            
+            // Fix for #6: Clear local transactions and replace with remote to handle deletions
+            transactionDao.clearAll()
             transactionDao.insertTransactions(remoteTransactions)
         } catch (e: Exception) {
             Log.e(TAG, "syncTransactions failed", e)

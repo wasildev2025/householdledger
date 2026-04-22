@@ -72,8 +72,18 @@ class SettingsViewModel @Inject constructor(
     fun setNotifications(value: Boolean) { viewModelScope.launch { prefs.setNotificationsEnabled(value) } }
     fun setCurrency(value: String) { viewModelScope.launch { prefs.setCurrency(value) } }
     fun setBiometric(value: Boolean) { viewModelScope.launch { prefs.setBiometricEnabled(value) } }
-    fun setMonthlyBudget(value: Double) { viewModelScope.launch { prefs.setMonthlyBudget(value) } }
-    fun setCycleStartDay(value: Int) { viewModelScope.launch { prefs.setCycleStartDay(value) } }
+    fun setMonthlyBudget(value: Double) { 
+        viewModelScope.launch { 
+            prefs.setMonthlyBudget(value)
+            householdRepository.updateCycleSettings(state.value.cycleStartDay, value)
+        }
+    }
+    fun setCycleStartDay(value: Int) { 
+        viewModelScope.launch { 
+            prefs.setCycleStartDay(value)
+            householdRepository.updateCycleSettings(value, state.value.monthlyBudget)
+        }
+    }
 
     fun exportJson() {
         viewModelScope.launch {

@@ -80,14 +80,18 @@ class DairyViewModel @Inject constructor(
     }
 
     fun addLog(milkQty: Double, yogurtQty: Double) {
+        val date = dateForSelectedMonth(uiState.value.selectedMonth).toString()
+        addLogWithDate(milkQty, yogurtQty, date)
+    }
+
+    fun addLogWithDate(milkQty: Double, yogurtQty: Double, date: String) {
         val householdId = authRepository.currentUser.value?.householdId ?: return
         val current = uiState.value
         val total = (milkQty * current.milkPrice) + (yogurtQty * current.yogurtPrice)
 
         val log = DairyLog(
             id = UUID.randomUUID().toString(),
-            // Record under the currently-viewed month so users can log for prior months too.
-            date = dateForSelectedMonth(current.selectedMonth).toString(),
+            date = date,
             milkQty = milkQty,
             milkPrice = current.milkPrice,
             yogurtQty = yogurtQty,

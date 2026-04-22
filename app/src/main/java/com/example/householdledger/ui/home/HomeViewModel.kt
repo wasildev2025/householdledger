@@ -3,6 +3,7 @@ package com.example.householdledger.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.householdledger.data.model.Category
+import com.example.householdledger.data.model.Household
 import com.example.householdledger.data.model.Member
 import com.example.householdledger.data.model.RecurringTemplate
 import com.example.householdledger.data.model.Servant
@@ -10,6 +11,7 @@ import com.example.householdledger.data.model.Transaction
 import com.example.householdledger.data.local.PreferenceManager
 import com.example.householdledger.data.repository.AuthRepository
 import com.example.householdledger.data.repository.CategoryRepository
+import com.example.householdledger.data.repository.HouseholdRepository
 import com.example.householdledger.data.repository.PeopleRepository
 import com.example.householdledger.data.repository.RecurringRepository
 import com.example.householdledger.data.repository.TransactionRepository
@@ -101,6 +103,7 @@ class HomeViewModel @Inject constructor(
     private val peopleRepository: PeopleRepository,
     private val recurringRepository: RecurringRepository,
     private val authRepository: AuthRepository,
+    private val householdRepository: HouseholdRepository,
     private val preferenceManager: PreferenceManager
 ) : ViewModel() {
 
@@ -132,11 +135,10 @@ class HomeViewModel @Inject constructor(
         peopleRepository.members,
         authRepository.currentUser,
         filter,
-        preferenceManager.monthlyBudget,
+        householdRepository.household,
         aiInsight,
         isOffline,
-        upcomingBillsFlow,
-        preferenceManager.cycleStartDay
+        upcomingBillsFlow
     ) { arr ->
         @Suppress("UNCHECKED_CAST") val transactions = arr[0] as List<Transaction>
         @Suppress("UNCHECKED_CAST") val categories = arr[1] as List<Category>
@@ -144,11 +146,13 @@ class HomeViewModel @Inject constructor(
         @Suppress("UNCHECKED_CAST") val members = arr[3] as List<Member>
         val user = arr[4] as com.example.householdledger.data.model.UserProfile?
         val f = arr[5] as HomeFilter
-        val userBudget = arr[6] as Double
+        val household = arr[6] as Household?
         val insight = arr[7] as String?
         val offline = arr[8] as Boolean
         @Suppress("UNCHECKED_CAST") val upcoming = arr[9] as List<UpcomingBill>
-        val cycleStartDay = arr[10] as Int
+
+        val cycleStartDay = household?.cycleStartDay ?: 1
+        val userBudget = household?.monthlyBudget ?: 0.0
 
         val now = LocalDate.now()
         val thisCycle = Cycle.current(now, cycleStartDay)
@@ -349,4 +353,3 @@ private fun <R> combineN(
         transform(values)
     }
 }
-

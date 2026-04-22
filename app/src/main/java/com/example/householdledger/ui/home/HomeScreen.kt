@@ -26,15 +26,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.LocalDrink
 import androidx.compose.material.icons.outlined.NotificationsNone
-import androidx.compose.material.icons.outlined.RemoveRedEye
 import androidx.compose.material.icons.outlined.Repeat
-import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -52,14 +49,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.householdledger.ui.components.AppCard
 import com.example.householdledger.ui.components.Avatar
-import com.example.householdledger.ui.components.CategoryPill
+import com.example.householdledger.ui.components.CategoryLogo
 import com.example.householdledger.ui.components.CyclePulseHero
 import com.example.householdledger.ui.components.CycleRibbon
 import com.example.householdledger.ui.components.EmptyState
@@ -68,6 +65,7 @@ import com.example.householdledger.ui.components.MoneyTone
 import com.example.householdledger.ui.components.SectionHeader
 import com.example.householdledger.ui.components.Skeleton
 import com.example.householdledger.ui.components.WalletPocketCard
+import com.example.householdledger.ui.theme.PillShape
 import com.example.householdledger.util.DateUtil
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -196,9 +194,92 @@ fun HomeScreen(
                         )
                     }
                 }
-                else -> items(state.recent, key = { it.transaction.id }) { row ->
-                    TransactionRowItem(row)
+                else -> {
+                    items(state.recent) { row ->
+                        HomeTransactionCard(row)
+                    }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeTransactionCard(row: TransactionRow) {
+    val txn = row.transaction
+    val tone = when (txn.type) {
+        "income" -> MoneyTone.Income
+        "expense" -> MoneyTone.Expense
+        else -> MoneyTone.Neutral
+    }
+    
+    AppCard(
+        elevation = 2.dp,
+        contentPadding = PaddingValues(12.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // Category Icon with Claymorphism style
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 2.dp,
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    CategoryLogo(
+                        name = row.category?.name ?: txn.description,
+                        colorHex = row.category?.color,
+                        iconName = row.category?.icon,
+                        size = 28.dp
+                    )
+                }
+            }
+            
+            Spacer(Modifier.width(14.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = txn.description.ifBlank { row.category?.name ?: "Transaction" },
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1
+                )
+                Text(
+                    text = buildString {
+                        if (row.category != null) append(row.category.name).append(" • ")
+                        append(formatRelativeDate(txn.date))
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
+            
+            Column(horizontalAlignment = Alignment.End) {
+                MoneyText(
+                    amount = txn.amount, 
+                    tone = tone, 
+                    showSign = false,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-0.5).sp
+                    )
+                )
+                // Small indicator for type
+                val indicatorColor = when(txn.type) {
+                    "income" -> Color(0xFF10B981)
+                    "transfer" -> Color(0xFF3B82F6)
+                    else -> MaterialTheme.colorScheme.error
+                }
+                Box(
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .size(6.dp)
+                        .background(indicatorColor, CircleShape)
+                )
             }
         }
     }
@@ -290,7 +371,7 @@ private fun HomeFilterTabs(selected: HomeFilter, onChange: (HomeFilter) -> Unit)
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        HomeFilter.values().forEach { opt ->
+        HomeFilter.entries.forEach { opt ->
             Surface(
                 onClick = { onChange(opt) },
                 shape = RoundedCornerShape(999.dp),
@@ -305,7 +386,7 @@ private fun HomeFilterTabs(selected: HomeFilter, onChange: (HomeFilter) -> Unit)
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                     modifier = Modifier.padding(vertical = 10.dp, horizontal = 8.dp),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    color = androidx.compose.ui.graphics.Color.Unspecified
+                    color = Color.Unspecified
                 )
             }
         }
@@ -430,8 +511,9 @@ private fun UpcomingBillCard(b: UpcomingBill) {
         modifier = Modifier.width(180.dp),
         contentPadding = PaddingValues(14.dp),
         containerColor = if (urgent) MaterialTheme.colorScheme.errorContainer
-        else MaterialTheme.colorScheme.surface,
-        borderColor = if (urgent) null else MaterialTheme.colorScheme.outlineVariant
+        else Color.White,
+        borderColor = null,
+        elevation = if (urgent) 0.dp else 4.dp
     ) {
         Column {
             Text(
@@ -455,46 +537,6 @@ private fun UpcomingBillCard(b: UpcomingBill) {
                 color = if (urgent) MaterialTheme.colorScheme.onErrorContainer
                 else MaterialTheme.colorScheme.onSurface
             )
-        }
-    }
-}
-
-@Composable
-private fun TransactionRowItem(row: TransactionRow) {
-    val txn = row.transaction
-    val tone = when (txn.type) {
-        "income" -> MoneyTone.Income
-        "expense" -> MoneyTone.Expense
-        else -> MoneyTone.Neutral
-    }
-    AppCard(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(14.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            CategoryPill(
-                icon = row.category?.icon?.ifBlank { txn.description.take(1).uppercase() }
-                    ?: txn.description.take(1).uppercase(),
-                colorHex = row.category?.color
-            )
-            Spacer(Modifier.width(14.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = txn.description.ifBlank { row.category?.name ?: "Transaction" },
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = buildString {
-                        if (row.category != null) append(row.category.name).append(" • ")
-                        append(formatRelativeDate(txn.date))
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
-                )
-            }
-            Spacer(Modifier.width(12.dp))
-            MoneyText(amount = txn.amount, tone = tone, showSign = true)
         }
     }
 }
