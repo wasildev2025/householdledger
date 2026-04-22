@@ -49,6 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -215,46 +216,59 @@ private fun HomeTransactionCard(row: TransactionRow) {
     
     AppCard(
         elevation = 2.dp,
-        contentPadding = PaddingValues(12.dp)
+        contentPadding = PaddingValues(16.dp),
+        onClick = { /* Navigate to edit if needed */ }
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
+            // Left Accent color bar (matching TransactionListScreen)
+            val accentColor = parseHex(row.category?.color) ?: MaterialTheme.colorScheme.primary
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .height(40.dp)
+                    .background(accentColor, RoundedCornerShape(2.dp))
+            )
+            
+            Spacer(Modifier.width(12.dp))
+            
             // Category Icon with Claymorphism style
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surface,
                 shadowElevation = 2.dp,
-                modifier = Modifier.size(44.dp)
+                modifier = Modifier.size(48.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     CategoryLogo(
                         name = row.category?.name ?: txn.description,
                         colorHex = row.category?.color,
                         iconName = row.category?.icon,
-                        size = 28.dp
+                        size = 32.dp
                     )
                 }
             }
             
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(16.dp))
             
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = txn.description.ifBlank { row.category?.name ?: "Transaction" },
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1
                 )
                 Text(
-                    text = buildString {
-                        if (row.category != null) append(row.category.name).append(" • ")
-                        append(formatRelativeDate(txn.date))
-                    },
+                    text = row.category?.name ?: "Uncategorized",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = formatRelativeDate(txn.date),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
+                    color = MaterialTheme.colorScheme.outline
                 )
             }
             
@@ -263,24 +277,47 @@ private fun HomeTransactionCard(row: TransactionRow) {
                     amount = txn.amount, 
                     tone = tone, 
                     showSign = false,
-                    style = MaterialTheme.typography.titleMedium.copy(
+                    style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         letterSpacing = (-0.5).sp
                     )
                 )
-                // Small indicator for type
-                val indicatorColor = when(txn.type) {
-                    "income" -> Color(0xFF10B981)
-                    "transfer" -> Color(0xFF3B82F6)
-                    else -> MaterialTheme.colorScheme.error
-                }
-                Box(
-                    modifier = Modifier
-                        .padding(top = 4.dp)
-                        .size(6.dp)
-                        .background(indicatorColor, CircleShape)
-                )
+                Spacer(Modifier.height(8.dp))
+                // Status Pill (matching TransactionListScreen)
+                HomeStatusPill(txn.type)
             }
+        }
+    }
+}
+
+@Composable
+private fun HomeStatusPill(type: String) {
+    val (label, color) = when (type) {
+        "income" -> "Received" to Color(0xFF10B981)
+        "transfer" -> "Settled" to Color(0xFF3B82F6)
+        else -> "Paid" to Color(0xFF10B981) // Green for 'Paid' as in the design
+    }
+    
+    Surface(
+        shape = PillShape,
+        color = color.copy(alpha = 0.1f),
+        modifier = Modifier.height(24.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .background(color, CircleShape)
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                color = color
+            )
         }
     }
 }
@@ -569,4 +606,9 @@ private fun formatRelativeDate(raw: String): String {
         date.year == today.year -> date.format(DateTimeFormatter.ofPattern("d MMM"))
         else -> date.format(DateTimeFormatter.ofPattern("d MMM yyyy"))
     }
+}
+
+private fun parseHex(hex: String?): Color? {
+    if (hex.isNullOrBlank()) return null
+    return runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull()
 }

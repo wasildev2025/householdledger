@@ -44,9 +44,9 @@ fun MoneyText(
         else -> ""
     }
     
-    // Normalize RS or Rs to Rs and ensure no space
+    // Normalize RS or Rs to Rs and ensure a space between symbol and amount
     val displaySymbol = if (currencySymbol.equals("RS", ignoreCase = true)) "Rs" else currencySymbol
-    val formatted = "$sign$displaySymbol${formatter.format(absAmount)}"
+    val formatted = "$sign$displaySymbol ${formatter.format(absAmount)}"
 
     val resolvedColor = when {
         color != Color.Unspecified -> color
