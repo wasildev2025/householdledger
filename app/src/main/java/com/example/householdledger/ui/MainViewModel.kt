@@ -64,7 +64,10 @@ class MainViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            authRepository.loadProfile()
+            // Wait for Supabase to restore (or clear) the session from storage
+            // before unlocking boot — otherwise NavHost briefly routes to Login
+            // before the restored session arrives and flips us to Home.
+            authRepository.awaitSessionResolved()
             _bootReady.value = true
         }
         // React to the profile becoming available (or changing households) and sync everything.

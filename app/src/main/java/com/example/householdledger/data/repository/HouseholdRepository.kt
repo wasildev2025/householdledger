@@ -1,5 +1,6 @@
 package com.example.householdledger.data.repository
 
+import com.example.householdledger.data.local.PreferenceManager
 import com.example.householdledger.data.model.Household
 import com.example.householdledger.data.model.Member
 import com.example.householdledger.data.model.Servant
@@ -13,7 +14,8 @@ import javax.inject.Singleton
 @Singleton
 class HouseholdRepository @Inject constructor(
     private val postgrest: Postgrest,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val preferenceManager: PreferenceManager
 ) {
     private val _household = MutableStateFlow<Household?>(null)
     val household: StateFlow<Household?> = _household
@@ -75,6 +77,11 @@ class HouseholdRepository @Inject constructor(
                 }
                 .decodeSingle<Household>()
             _household.value = result
+            // Mirror household-level settings into local prefs so every device in
+            // the household — owner and servants alike — reads the same values.
+            // Household record is the source of truth; prefs are a local cache.
+            preferenceManager.setCycleStartDay(result.cycleStartDay)
+            preferenceManager.setMonthlyBudget(result.monthlyBudget)
         } catch (e: Exception) {
             e.printStackTrace()
         }

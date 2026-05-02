@@ -17,6 +17,7 @@ import kotlinx.serialization.json.put
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -32,6 +33,12 @@ class AuthRepository @Inject constructor(
     private val _currentUser = MutableStateFlow<UserProfile?>(null)
     val currentUser: StateFlow<UserProfile?> = _currentUser
 
+    // Becomes true once Supabase has restored (or failed to restore) a session
+    // AND any post-restore profile load has finished. Boot UI waits on this so
+    // Login never flashes on top of an authenticated session.
+    private val _sessionResolved = MutableStateFlow(false)
+    val sessionResolved: StateFlow<Boolean> = _sessionResolved
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     init {
@@ -41,14 +48,20 @@ class AuthRepository @Inject constructor(
                 when (status) {
                     is SessionStatus.Authenticated -> {
                         loadProfile()
+                        _sessionResolved.value = true
                     }
                     is SessionStatus.NotAuthenticated -> {
                         _currentUser.value = null
+                        _sessionResolved.value = true
                     }
                     else -> Unit
                 }
             }
         }
+    }
+
+    suspend fun awaitSessionResolved() {
+        sessionResolved.first { it }
     }
 
     fun getSupabaseUser() = auth.currentUserOrNull()
